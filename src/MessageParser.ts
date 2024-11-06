@@ -22,12 +22,14 @@ export class MessageParser {
         // we're on grid with a wormhole
         wormhole = true;
       } else {
-        const key = line;
-        const grid = await Grid.getInstance();
-        await grid.seenOnGrid(key);
-
         // PILOT SHIP [CORP] [ALLIANCE]
         const words = line.split(" ");
+
+        const key = line;
+        if (words.length > 3) {
+          const grid = await Grid.getInstance();
+          await grid.seenOnGrid(key);
+        }
       }
     }
   }

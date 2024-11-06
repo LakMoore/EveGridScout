@@ -35,4 +35,11 @@ export class Grid {
       (await Grid.getInstance()).save();
     }
   }
+
+  async delete(key: string) {
+    const found = Grid.seenInHoth.includes(key);
+    Grid.seenInHoth = Grid.seenInHoth.filter((k) => k !== key);
+    await this.save();
+    return found;
+  }
 }

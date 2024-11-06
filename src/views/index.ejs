@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTMX with Koa and TypeScript</title>
+    <script src="https://unpkg.com/htmx.org@1.9.5"></script>
+</head>
+
+<body>
+    <h1>Seen in Hoth so far:</h1>
+    <ul id="pilot-list">
+        <% pilots.forEach((pilot, index)=> { %>
+            <li id="item-<%= index %>">
+                <%= pilot %>
+                <button hx-delete="/key/<%= pilot %>" hx-target="#item-<%= index %>" hx-swap="outerHTML">
+                    Delete
+                </button>
+            </li>
+            <% }); %>
+    </ul>
+</body>
+
+</html>

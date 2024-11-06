@@ -1,20 +1,39 @@
 import Koa from "koa";
 import Router from "koa-router";
+import serve from "koa-static";
+import views from "@ladjs/koa-views";
 import bodyParser from "koa-bodyparser";
+import path from "path";
 import { Grid } from "./Grid";
 import { MessageParser } from "./MessageParser";
+
+interface DeleteRequest {
+  key: string;
+}
 
 export class Server {
   private readonly app = new Koa();
   private readonly router = new Router();
 
   public start(koa_port: number) {
+    // Set up static file serving
+    this.app.use(serve(path.join(__dirname, "public")));
+
+    // Set up view rendering
+    this.app.use(
+      views(path.join(__dirname, "views"), {
+        extension: "ejs",
+      })
+    );
+
     this.app.use(bodyParser());
-    this.app.use(this.router.routes());
+    this.app.use(this.router.routes()).use(this.router.allowedMethods());
 
     this.router.get("/", async (ctx) => {
       const grid = await Grid.getInstance();
-      ctx.body = "Seen in Hoth so far:\n" + grid.seenSoFar().join("\n");
+      await ctx.render("index", { pilots: grid.seenSoFar() });
+
+      //      ctx.body = `<html>Seen in Hoth so far:<br/>${grid.seenSoFar().join("<br/>")}</html>`;
     });
 
     this.router.post("/", async (ctx, next) => {
@@ -22,6 +41,23 @@ export class Server {
       await MessageParser.getInstance().parse(ctx.request.rawBody);
       ctx.body = "Message received";
       await next();
+    });
+
+    this.router.delete("/key/:key", async (ctx) => {
+      const key = ctx.params.key;
+      if (key) {
+        const grid = await Grid.getInstance();
+        //remove item from grid
+        const success = await grid.delete(key);
+
+        if (success) {
+          ctx.status = 200;
+          ctx.body = "";
+        } else {
+          ctx.status = 404;
+          ctx.body = "Not found";
+        }
+      }
     });
 
     this.app.listen(koa_port, () =>
