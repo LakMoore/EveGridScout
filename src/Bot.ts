@@ -11,7 +11,7 @@ function main() {
   dotenv.config();
   console.log("Bot is starting...");
 
-  Data.initialise();
+  Data.getInstance().initialise();
 
   const client = new Client({
     intents: [IntentsBitField.Flags.Guilds],
@@ -30,7 +30,7 @@ function main() {
 
   // start our web server
   const server = new Server();
-  server.start();
+  server.start(Number(process.env.SERVER_PORT ?? 3000));
 }
 
 main();

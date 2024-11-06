@@ -13,15 +13,15 @@ export class Data {
 
   private constructor() {}
 
-  public static async initialise() {
+  public async initialise() {
     await storage.init();
   }
 
-  public static async saveData(key: string, value: any) {
+  public async saveData(key: string, value: any) {
     await storage.setItem(key, value);
   }
 
-  public static async getData(key: string) {
+  public async getData(key: string) {
     return await storage.getItem(key);
   }
 }

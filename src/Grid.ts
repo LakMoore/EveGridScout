@@ -14,12 +14,12 @@ export class Grid {
   }
 
   public async save() {
-    await Data.saveData("seenInHoth", Grid.seenInHoth);
+    await Data.getInstance().saveData("seenInHoth", Grid.seenInHoth);
   }
 
   public async load() {
     console.log("Loading seen in Hoth...");
-    Grid.seenInHoth = await Data.getData("seenInHoth");
+    Grid.seenInHoth = await Data.getInstance().getData("seenInHoth");
   }
 
   public seenSoFar() {

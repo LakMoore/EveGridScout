@@ -11,7 +11,7 @@ export class MessageParser {
     return MessageParser.instance;
   }
 
-  public static async parse(message: string) {
+  public async parse(message: string) {
     const lines = message.split("\n");
     let wormhole = false;
 
@@ -23,7 +23,8 @@ export class MessageParser {
         wormhole = true;
       } else {
         const key = line;
-        await (await Grid.getInstance()).seenOnGrid(key);
+        const grid = await Grid.getInstance();
+        await grid.seenOnGrid(key);
 
         // PILOT SHIP [CORP] [ALLIANCE]
         const words = line.split(" ");
