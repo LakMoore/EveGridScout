@@ -20,6 +20,9 @@ export class Grid {
   public async load() {
     console.log("Loading seen in Hoth...");
     Grid.seenInHoth = await Data.getInstance().getData("seenInHoth");
+    if (Grid.seenInHoth === undefined) {
+      Grid.seenInHoth = [];
+    }
   }
 
   public seenSoFar() {
