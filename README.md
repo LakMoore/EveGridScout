@@ -1,7 +1,3 @@
-# DiscordBotTS
+# EveGridScout (Server)
 
-Boilerplate code for a Discord Bot written in Typescript.
-
-- Fork this project
-- add your commands and code
-- profit
+A simple server to listen for EveGridScout data and report on pilots and ships seen so far
