@@ -21,11 +21,11 @@ export class Server {
     });
 
     // Set up static file serving
-    this.app.use(serve(path.join(__dirname, "public")));
+    this.app.use(serve(path.join(__dirname, "../public")));
 
     // Set up view rendering
     this.app.use(
-      views(path.join(__dirname, "views"), {
+      views(path.join(__dirname, "../views"), {
         extension: "ejs",
       })
     );
