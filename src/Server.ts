@@ -38,6 +38,8 @@ export class Server {
       const grid = await Grid.getInstance();
       await ctx.render("index", {
         pilots: grid.seenSoFar(),
+        custom_escape: (str: string) =>
+          querystring.escape(str).replace(/\//g, "%2F"),
       });
     });
 
