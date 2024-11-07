@@ -22,6 +22,9 @@ export class Grid {
     Grid.seenInHoth = await Data.getInstance().getData("seenInHoth");
     if (Grid.seenInHoth === undefined) {
       Grid.seenInHoth = [];
+    } else {
+      // Hack to ensure we never have any slashes in our grid keys
+      Grid.seenInHoth = Grid.seenInHoth.map((k) => k.replace("/", ""));
     }
   }
 
