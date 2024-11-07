@@ -34,10 +34,7 @@ export class Server {
 
     this.router.get("/", async (ctx) => {
       const grid = await Grid.getInstance();
-      await ctx.render("index", {
-        root_path: process.env.SERVER_ROOT_PATH,
-        pilots: grid.seenSoFar(),
-      });
+      await ctx.render("index", { pilots: grid.seenSoFar() });
     });
 
     this.router.post("/", bodyParser(), async (ctx, next) => {
@@ -49,7 +46,7 @@ export class Server {
 
     this.router.delete("/key/:key", async (ctx) => {
       console.log("Deleting key", ctx.params.key);
-      const key = ctx.params.key;
+      const key = decodeURIComponent(ctx.params.key);
       if (key) {
         const grid = await Grid.getInstance();
         //remove item from grid
@@ -66,9 +63,7 @@ export class Server {
     });
 
     this.app.listen(koa_port, () =>
-      console.log(
-        `Listening on http://localhost:${koa_port}${process.env.SERVER_ROOT_PATH}`
-      )
+      console.log(`Listening on http://localhost:${koa_port}`)
     );
   }
 }

@@ -14,7 +14,7 @@
         <% pilots.forEach((pilot, index)=> { %>
             <li id="item-<%= index %>">
                 <%= pilot %>
-                <button hx-delete="<%= root_path %>/key/<%= pilot %>" hx-target="#item-<%= index %>" hx-swap="outerHTML">
+                <button hx-delete="/key/<%= encodeURIComponent(pilot) %>" hx-target="#item-<%= index %>" hx-swap="outerHTML">
                     Delete
                 </button>
             </li>
