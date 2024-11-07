@@ -31,9 +31,10 @@ export class Server {
 
     this.router.get("/", async (ctx) => {
       const grid = await Grid.getInstance();
-      await ctx.render("index", { pilots: grid.seenSoFar() });
-
-      //      ctx.body = `<html>Seen in Hoth so far:<br/>${grid.seenSoFar().join("<br/>")}</html>`;
+      await ctx.render("index", {
+        root_path: process.env.SERVER_ROOT_PATH,
+        pilots: grid.seenSoFar(),
+      });
     });
 
     this.router.post("/", async (ctx, next) => {
