@@ -47,6 +47,7 @@ export class Server {
     this.router.delete(
       process.env.SERVER_ROOT_PATH + "/key/:key",
       async (ctx) => {
+        console.log("Deleting key", ctx.params.key);
         const key = ctx.params.key;
         if (key) {
           const grid = await Grid.getInstance();
