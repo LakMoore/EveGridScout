@@ -30,8 +30,6 @@ export class Server {
       })
     );
 
-    this.app.use(bodyParser());
-
     this.app.use(this.router.routes()).use(this.router.allowedMethods());
 
     this.router.get("/", async (ctx) => {
@@ -42,7 +40,7 @@ export class Server {
       });
     });
 
-    this.router.post("/", async (ctx, next) => {
+    this.router.post("/", bodyParser(), async (ctx, next) => {
       console.log(ctx.request.rawBody);
       await MessageParser.getInstance().parse(ctx.request.rawBody);
       ctx.body = "Message received";
