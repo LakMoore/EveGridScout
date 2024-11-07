@@ -24,12 +24,6 @@ export class Server {
 
     this.app.use(bodyParser());
 
-    // Add the subpath to all routes
-    const rootpath = process.env.SERVER_ROOT_PATH;
-    if (rootpath && rootpath.length > 0) {
-      this.router.prefix(rootpath);
-    }
-
     this.app.use(this.router.routes()).use(this.router.allowedMethods());
 
     this.router.get("/", async (ctx) => {
