@@ -26,7 +26,9 @@ export class MessageParser {
         const words = line.split(" ");
 
         const key = line;
-        if (words.length > 3) {
+        if (words.length > 2) {
+          // ALLIANCE is optional!
+
           const grid = await Grid.getInstance();
           await grid.seenOnGrid(key);
         }
