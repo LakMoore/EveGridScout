@@ -4,12 +4,14 @@ import serve from "koa-static";
 import views from "@ladjs/koa-views";
 import bodyParser from "koa-bodyparser";
 import path from "path";
+import querystring, { escape } from "querystring";
 import { Grid } from "./Grid";
 import { MessageParser } from "./MessageParser";
 
 export class Server {
   private readonly app = new Koa();
   private readonly router = new Router();
+  private counter = 0;
 
   public start(koa_port: number) {
     //set up logging
@@ -34,19 +36,21 @@ export class Server {
 
     this.router.get("/", async (ctx) => {
       const grid = await Grid.getInstance();
-      await ctx.render("index", { pilots: grid.seenSoFar() });
+      await ctx.render("index", {
+        pilots: grid.seenSoFar(),
+      });
     });
 
     this.router.post("/", bodyParser(), async (ctx, next) => {
       console.log(ctx.request.rawBody);
       await MessageParser.getInstance().parse(ctx.request.rawBody);
-      ctx.body = "Message received";
+      ctx.body = `Message ${++this.counter} received`;
       await next();
     });
 
     this.router.delete("/key/:key", async (ctx) => {
       console.log("Deleting key", ctx.params.key);
-      const key = decodeURIComponent(ctx.params.key);
+      const key = querystring.unescape(ctx.params.key);
       if (key) {
         const grid = await Grid.getInstance();
         //remove item from grid
