@@ -14,7 +14,7 @@
         <% pilots.forEach((pilot, index)=> { %>
             <li id="item-<%= index %>">
                 <%= pilot %>
-                <button hx-delete="/key/<%= custom_escape(pilot) %>" hx-target="#item-<%= index %>" hx-swap="outerHTML">
+                <button hx-delete="<%= fix_path('/key/' + custom_escape(pilot)) %>" hx-target="#item-<%= index %>" hx-swap="outerHTML">
                     Delete
                 </button>
             </li>

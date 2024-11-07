@@ -4,9 +4,17 @@ import serve from "koa-static";
 import views from "@ladjs/koa-views";
 import bodyParser from "koa-bodyparser";
 import path from "path";
-import querystring, { escape } from "querystring";
+import querystring from "querystring";
 import { Grid } from "./Grid";
 import { MessageParser } from "./MessageParser";
+
+function fix_path(this_path: string) {
+  return `${process.env.SERVER_ROOT_PATH}${this_path}`;
+}
+
+function custom_escape(str: string) {
+  return querystring.escape(str).replace(/\//g, "%2F");
+}
 
 export class Server {
   private readonly app = new Koa();
@@ -38,8 +46,8 @@ export class Server {
       const grid = await Grid.getInstance();
       await ctx.render("index", {
         pilots: grid.seenSoFar(),
-        custom_escape: (str: string) =>
-          querystring.escape(str).replace(/\//g, "%2F"),
+        fix_path,
+        custom_escape,
       });
     });
 
