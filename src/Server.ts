@@ -12,6 +12,14 @@ export class Server {
   private readonly router = new Router();
 
   public start(koa_port: number) {
+    //set up logging
+    this.app.use(async (ctx, next) => {
+      const start = Date.now();
+      await next();
+      const ms = Date.now() - start;
+      console.log(`Koa: ${ctx.method} ${ctx.url} - ${ms}ms`);
+    });
+
     // Set up static file serving
     this.app.use(serve(path.join(__dirname, "public")));
 
