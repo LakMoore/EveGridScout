@@ -44,8 +44,10 @@ export class Server {
 
     this.router.get("/", async (ctx) => {
       const grid = await Grid.getInstance();
+      const tempgrid = [...grid.seenSoFar()];
+      tempgrid.reverse();
       await ctx.render("index", {
-        pilots: grid.seenSoFar(),
+        pilots: tempgrid,
         fix_path,
         custom_escape,
       });
