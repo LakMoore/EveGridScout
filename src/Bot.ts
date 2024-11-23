@@ -7,11 +7,11 @@ import interactionCreate from "./listeners/interactionCreate";
 import { Server } from "./Server";
 import { Data } from "./Data";
 
-function main() {
+async function main() {
   dotenv.config();
   console.log("Bot is starting...");
 
-  Data.getInstance().initialise();
+  await Data.getInstance().initialise();
 
   const client = new Client({
     intents: [IntentsBitField.Flags.Guilds],

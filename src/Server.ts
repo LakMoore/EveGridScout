@@ -20,12 +20,23 @@ export class Server {
   private readonly app = new Koa();
   private readonly router = new Router();
   private counter = 0;
+  private grid!: Grid;
 
-  public start(koa_port: number) {
+  public async start(koa_port: number) {
+    // Initialize grid once at startup
+    this.grid = await Grid.getInstance();
+
     //set up logging
     this.app.use(async (ctx, next) => {
       const start = Date.now();
-      await next();
+      try {
+        await next();
+      } catch (err) {
+        console.error(`Koa: ${ctx.method} ${ctx.url} - Error: `, err);
+        ctx.status = 500;
+        ctx.body =
+          "An error occurred on our server. Please try again and contact us if this continues to happen.";
+      }
       const ms = Date.now() - start;
       console.log(`Koa: ${ctx.method} ${ctx.url} - ${ms}ms`);
     });
@@ -43,31 +54,28 @@ export class Server {
     this.app.use(this.router.routes()).use(this.router.allowedMethods());
 
     this.router.get("/", async (ctx) => {
-      const grid = await Grid.getInstance();
-      // Get the last 500 sightings
-      const tempgrid = [...grid.seenSoFar().slice(-500)];
-      tempgrid.reverse();
+      // Use the already initialized grid instance
+      const sightings = [...this.grid.seenSoFar().slice(-500)];
+      sightings.reverse();
       await ctx.render("index", {
-        sightings: tempgrid,
+        sightings,
         fix_path,
         custom_escape,
       });
     });
 
-    this.router.post("/", bodyParser(), async (ctx, next) => {
+    this.router.post("/", bodyParser(), async (ctx) => {
       console.log(ctx.request.rawBody);
       await MessageParser.getInstance().parse(ctx.request.rawBody);
       ctx.body = `Message ${++this.counter} received`;
-      await next();
     });
 
     this.router.delete("/key/:key", async (ctx) => {
       console.log("Deleting key", ctx.params.key);
       const key = querystring.unescape(ctx.params.key);
       if (key) {
-        const grid = await Grid.getInstance();
-        //remove item from grid
-        const success = await grid.delete(key);
+        // Use the already initialized grid instance
+        const success = await this.grid.delete(key);
 
         if (success) {
           ctx.status = 200;
