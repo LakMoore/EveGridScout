@@ -47,7 +47,7 @@ export class Server {
       const tempgrid = [...grid.seenSoFar()];
       tempgrid.reverse();
       await ctx.render("index", {
-        pilots: tempgrid,
+        sightings: tempgrid,
         fix_path,
         custom_escape,
       });

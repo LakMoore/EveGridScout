@@ -10,16 +10,41 @@
 
 <body>
     <h1>Seen in Hoth so far:</h1>
-    <ul id="pilot-list">
-        <% pilots.forEach((pilot, index)=> { %>
-            <li id="item-<%= index %>">
-                <%= pilot %>
-                <button hx-delete="<%= fix_path('/key/' + custom_escape(pilot)) %>" hx-target="#item-<%= index %>" hx-swap="outerHTML">
-                    Delete
-                </button>
-            </li>
-            <% }); %>
-    </ul>
+    <table id="pilot-list">
+        <thead>
+            <tr>
+                <th>Last Seen</th>
+                <th>Wormhole</th>
+                <th>Key</th>
+                <th>First Seen</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            <% sightings.forEach((sighting, index)=> { %>
+                <tr id="item-<%= index %>">
+                    <td>
+                        <%= new Date(sighting.lastSeenOnGrid).toLocaleString() %>
+                    </td>
+                    <td>
+                        <%= sighting.wormhole %>
+                    </td>
+                    <td>
+                        <%= sighting.key %>
+                    </td>
+                    <td>
+                        <%= new Date(sighting.firstSeenOnGrid).toLocaleString() %>
+                    </td>
+                    <td>
+                        <button hx-delete="<%= fix_path('/key/' + custom_escape(sighting.key)) %>"
+                            hx-target="#item-<%= index %>" hx-swap="outerHTML">
+                            Delete
+                        </button>
+                    </td>
+                </tr>
+                <% }); %>
+        </tbody>
+    </table>
 </body>
 
 </html>

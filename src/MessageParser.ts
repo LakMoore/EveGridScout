@@ -13,14 +13,16 @@ export class MessageParser {
 
   public async parse(message: string) {
     const lines = message.split("\n");
-    let wormhole = false;
+    let wormholeClass = "";
+
+    const pilots: string[] = [];
 
     for (const line of lines) {
       if (line == "Nothing Found") {
         // do nothing
-      } else if (line.startsWith("Wormhole")) {
+      } else if (line.startsWith("Wormhole ")) {
         // we're on grid with a wormhole
-        wormhole = true;
+        wormholeClass = line.split(" ")[1];
       } else {
         // PILOT SHIP [CORP] [ALLIANCE]
         const words = line.split(" ");
@@ -28,11 +30,16 @@ export class MessageParser {
         const key = line;
         if (words.length > 2) {
           // ALLIANCE is optional!
-
-          const grid = await Grid.getInstance();
-          await grid.seenOnGrid(key);
+          pilots.push(key);
         }
       }
     }
+
+    const grid = await Grid.getInstance();
+    return Promise.all(
+      pilots.map((pilot) => {
+        grid.seenOnGrid(pilot, wormholeClass);
+      })
+    );
   }
 }

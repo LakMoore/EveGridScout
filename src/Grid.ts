@@ -1,9 +1,20 @@
 import { Data } from "./Data";
 
+export interface PilotSighting {
+  key: string;
+  name: string;
+  ship: string;
+  alliance: string;
+  corp: string;
+  wormhole: string;
+  firstSeenOnGrid: number;
+  lastSeenOnGrid: number;
+}
+
 export class Grid {
   // singleton
   private static instance: Grid;
-  private static seenInHoth: Array<string> = [];
+  private static seenInHoth: Array<PilotSighting> = [];
 
   public static async getInstance(): Promise<Grid> {
     if (!Grid.instance) {
@@ -19,12 +30,34 @@ export class Grid {
 
   public async load() {
     console.log("Loading seen in Hoth...");
-    Grid.seenInHoth = await Data.getInstance().getData("seenInHoth");
-    if (Grid.seenInHoth === undefined) {
+    const temp = await Data.getInstance().getData("seenInHoth");
+    if (temp === undefined) {
       Grid.seenInHoth = [];
     } else {
+      // if it is an array of strings
+      if (
+        Array.isArray(temp) &&
+        temp.length > 0 &&
+        typeof temp[0] === "string"
+      ) {
+        // upgrade the old format
+        Grid.seenInHoth = temp.map((k: string) => {
+          return {
+            key: k,
+            name: k,
+            ship: "",
+            alliance: "",
+            corp: "",
+            wormhole: "",
+            firstSeenOnGrid: Date.now(),
+            lastSeenOnGrid: Date.now(),
+          };
+        });
+      } else {
+        Grid.seenInHoth = temp;
+      }
       // Hack to ensure we never have any slashes in our grid keys
-      Grid.seenInHoth = Grid.seenInHoth.map((k) => k.replace("/", ""));
+      Grid.seenInHoth.forEach((k) => (k.key = k.key.replace("/", "")));
     }
   }
 
@@ -32,17 +65,32 @@ export class Grid {
     return Grid.seenInHoth;
   }
 
-  public async seenOnGrid(key: string) {
-    if (!Grid.seenInHoth.includes(key)) {
-      Grid.seenInHoth.push(key);
-      (await Grid.getInstance()).save();
+  public async seenOnGrid(key: string, wormholeClass: string) {
+    const pilot = Grid.seenInHoth.find((p) => p.key === key);
+
+    if (!pilot) {
+      // first time we've seen this pilot
+      Grid.seenInHoth.push({
+        key,
+        name: "",
+        ship: "",
+        alliance: "",
+        corp: "",
+        wormhole: wormholeClass,
+        firstSeenOnGrid: Date.now(),
+        lastSeenOnGrid: Date.now(),
+      });
+    } else {
+      // seen before
+      pilot.lastSeenOnGrid = Date.now();
     }
+    await this.save();
   }
 
   async delete(key: string) {
-    const found = Grid.seenInHoth.includes(key);
-    Grid.seenInHoth = Grid.seenInHoth.filter((k) => k !== key);
+    const startLength = Grid.seenInHoth.length;
+    Grid.seenInHoth = Grid.seenInHoth.filter((k) => k.key !== key);
     await this.save();
-    return found;
+    return startLength !== Grid.seenInHoth.length;
   }
 }
