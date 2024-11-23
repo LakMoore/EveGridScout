@@ -44,7 +44,8 @@ export class Server {
 
     this.router.get("/", async (ctx) => {
       const grid = await Grid.getInstance();
-      const tempgrid = [...grid.seenSoFar()];
+      // Get the last 500 sightings
+      const tempgrid = [...grid.seenSoFar().slice(-500)];
       tempgrid.reverse();
       await ctx.render("index", {
         sightings: tempgrid,
