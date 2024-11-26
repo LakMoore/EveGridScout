@@ -83,6 +83,9 @@ export class Grid {
     } else {
       // seen before
       pilot.lastSeenOnGrid = Date.now();
+      // move it to the end of the list
+      Grid.seenInHoth = Grid.seenInHoth.filter((p) => p.key !== key);
+      Grid.seenInHoth.push(pilot);
     }
     await this.save();
   }
