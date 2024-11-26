@@ -18,7 +18,7 @@ export class MessageParser {
     const pilots: string[] = [];
 
     for (const line of lines) {
-      if (line == "Nothing Found") {
+      if (line.length == 0 || line == "Nothing Found") {
         // do nothing
       } else if (line.startsWith("Wormhole ")) {
         // we're on grid with a wormhole
@@ -35,11 +35,14 @@ export class MessageParser {
       }
     }
 
-    const grid = await Grid.getInstance();
-    return Promise.all(
-      pilots.map((pilot) => {
-        grid.seenOnGrid(pilot, wormholeClass);
-      })
-    );
+    // ensuring we are on grid with a WH should reduce gibberish reports
+    if (wormholeClass.length > 0 && pilots.length > 0) {
+      const grid = await Grid.getInstance();
+      return Promise.all(
+        pilots.map((pilot) => {
+          grid.seenOnGrid(pilot, wormholeClass);
+        })
+      );
+    }
   }
 }
