@@ -4,6 +4,13 @@ export class MessageParser {
   // singleton
   private static instance: MessageParser;
 
+  private headerWords = [
+    "Type",
+    "Corporation",
+    "Alliance",
+    "Name",
+  ];
+
   public static getInstance(): MessageParser {
     if (!MessageParser.instance) {
       MessageParser.instance = new MessageParser();
@@ -28,9 +35,13 @@ export class MessageParser {
         const words = line.split(" ");
 
         const key = line;
+        // ALLIANCE is optional!
         if (words.length > 2) {
-          // ALLIANCE is optional!
-          pilots.push(key);
+          // if we have 2 words, we're probably a pilot row
+          if (this.headerWords.filter((h) => words.indexOf(h) > -1).length < 3) {
+            // if we have fewer than 3 header words, we're not the header
+            pilots.push(key);
+          }
         }
       }
     }
