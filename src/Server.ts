@@ -64,7 +64,9 @@ export class Server {
       });
     });
 
-    this.router.post("/", bodyParser(), async (ctx) => {
+    this.router.post("/", bodyParser({
+      enableTypes: ['text', 'json'],
+    }), async (ctx) => {
       console.log(ctx.request.rawBody);
       await MessageParser.getInstance().parse(ctx.request.rawBody);
       ctx.body = `Message ${++this.counter} received`;
