@@ -1,4 +1,5 @@
 import { Grid } from "./Grid";
+import { ScoutMessage } from "./ScoutMessage";
 
 export class MessageParser {
   // singleton
@@ -18,8 +19,24 @@ export class MessageParser {
     return MessageParser.instance;
   }
 
-  public async parse(message: string) {
-    const lines = message.split("\n");
+  public async parse(body: string) {
+
+    // if message is a json object, cast it to a ScoutMessage
+    let message: ScoutMessage;
+    try {
+      message = JSON.parse(body) as ScoutMessage;
+    } catch (e) {
+      console.log(e);
+      message = {
+        Message: body,
+        Scout: 'unknown',
+        Wormhole: 'unknown'
+      } as ScoutMessage;
+    }
+
+    console.log(message);
+
+    const lines = message.Message.split("\n");
     let wormholeClass = "";
 
     const pilots: string[] = [];
@@ -51,7 +68,8 @@ export class MessageParser {
       const grid = await Grid.getInstance();
       return Promise.all(
         pilots.map((pilot) => {
-          grid.seenOnGrid(pilot, wormholeClass);
+          console.log(pilot);
+          grid.seenOnGrid(pilot, wormholeClass, message.Scout, message.Wormhole);
         })
       );
     }

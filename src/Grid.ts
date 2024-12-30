@@ -1,4 +1,5 @@
 import { Data } from "./Data";
+import { createHash } from "crypto";
 
 export interface PilotSighting {
   key: string;
@@ -9,6 +10,9 @@ export interface PilotSighting {
   wormhole: string;
   firstSeenOnGrid: number;
   lastSeenOnGrid: number;
+  wormholeName: string;
+  scoutName: string;
+  scoutDiscordId: string;
 }
 
 export class Grid {
@@ -51,13 +55,28 @@ export class Grid {
             wormhole: "",
             firstSeenOnGrid: Date.now(),
             lastSeenOnGrid: Date.now(),
+            wormholeName: "",
+            scoutName: "",
+            scoutDiscordId: "",
           };
         });
       } else {
         Grid.seenInHoth = temp;
       }
-      // Hack to ensure we never have any slashes in our grid keys
-      Grid.seenInHoth.forEach((k) => (k.key = k.key.replace("/", "")));
+      Grid.seenInHoth.forEach((k) => {
+        // Hack to ensure we never have any slashes in our grid keys
+        k.key = k.key.replace("/", "");
+        // upgrade the old format
+        if (k.wormholeName === undefined) {
+          k.wormholeName = "";
+        }
+        if (k.scoutName === undefined) {
+          k.scoutName = "";
+        }
+        if (k.scoutDiscordId === undefined) {
+          k.scoutDiscordId = "";
+        }
+      });
     }
   }
 
@@ -65,20 +84,65 @@ export class Grid {
     return Grid.seenInHoth;
   }
 
-  public async seenOnGrid(key: string, wormholeClass: string) {
+  public async seenOnGrid(data: string, wormholeClass: string, scout: string, wormhole: string) {
+
+    // This scout saw this pilot on this grid
+    var key = data + "/" + scout + "/" + wormhole;
+
+    // Hash the key
+    key = createHash("sha256").update(key).digest("hex");
+    console.log(key);
+
     const pilot = Grid.seenInHoth.find((p) => p.key === key);
+
+    // data = "Vexor Navy Issue [FFEW] [WEFEW] Sleezi Estidal"
+
+    const words = data.split(" ");
+    // find the index of words that start with square brackets
+    const shipNameLength = words.findIndex((word) => word.startsWith("[") || word.endsWith("]"));
+
+    var shipName = "";
+    var corp = "";
+    var alliance = "";
+    var name = "";
+
+    if (shipNameLength === -1) {
+      shipName = data;
+    } else {
+      // ship is the first shipNameLength words
+      shipName = words.slice(0, shipNameLength).join(" ");
+
+      // corp is the first word after shipNameLength
+      if (words.length > shipNameLength) {
+        corp = words[shipNameLength].replace("[", "").replace("]", "");
+      }
+
+      // alliance is the second word after shipNameLength
+      if (shipNameLength + 1 <= words.length) {
+        alliance = words[shipNameLength + 1].replace("[", "").replace("]", "");
+      }
+
+      // name is the rest of the words
+      if (shipNameLength + 2 <= words.length) {
+        name = words.slice(shipNameLength + 2).join(" ");
+      }
+    }
+
 
     if (!pilot) {
       // first time we've seen this pilot
       Grid.seenInHoth.push({
         key,
-        name: "",
-        ship: "",
-        alliance: "",
-        corp: "",
+        name,
+        ship: shipName,
+        alliance,
+        corp,
         wormhole: wormholeClass,
         firstSeenOnGrid: Date.now(),
         lastSeenOnGrid: Date.now(),
+        wormholeName: wormhole,
+        scoutName: scout,
+        scoutDiscordId: "",
       });
     } else {
       // seen before

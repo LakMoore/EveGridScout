@@ -13,9 +13,13 @@
     <table id="pilot-list">
         <thead>
             <tr>
+                <th>Ship</th>
+                <th>Character</th>
+                <th>Alliance</th>
+                <th>Corp</th>
                 <th>Last Seen</th>
                 <th>Wormhole</th>
-                <th>Key</th>
+                <th>Scout</th>
                 <th>First Seen</th>
                 <th></th>
             </tr>
@@ -23,24 +27,42 @@
         <tbody>
             <% sightings.forEach((sighting, index)=> { %>
                 <tr id="item-<%= index %>">
-                    <td>
-                        <%= new Date(sighting.lastSeenOnGrid).toLocaleString() %>
-                    </td>
-                    <td>
-                        <%= sighting.wormhole %>
-                    </td>
-                    <td>
-                        <%= sighting.key %>
-                    </td>
-                    <td>
-                        <%= new Date(sighting.firstSeenOnGrid).toLocaleString() %>
-                    </td>
-                    <td>
-                        <button hx-delete="<%= fix_path('/key/' + custom_escape(sighting.key)) %>"
-                            hx-target="#item-<%= index %>" hx-swap="outerHTML">
-                            Delete
-                        </button>
-                    </td>
+                    <% if (sighting.ship==='' && sighting.name !=='' && sighting.corp==='' ) { %>
+                        <td colspan="4">
+                            <%= sighting.name %>
+                        </td>
+                        <% } else { %>
+                            <td>
+                                <%= sighting.ship %>
+                            </td>
+                            <td>
+                                <%= sighting.name %>
+                            </td>
+                            <td>
+                                <%= sighting.alliance %>
+                            </td>
+                            <td>
+                                <%= sighting.corp %>
+                            </td>
+                            <% } %>
+                                <td>
+                                    <%= new Date(sighting.lastSeenOnGrid).toLocaleString() %>
+                                </td>
+                                <td>
+                                    <%= sighting.wormholeName %> (<%= sighting.wormhole %>)
+                                </td>
+                                <td>
+                                    <%= sighting.scoutName %>
+                                </td>
+                                <td>
+                                    <%= new Date(sighting.firstSeenOnGrid).toLocaleString() %>
+                                </td>
+                                <td>
+                                    <button hx-delete="<%= fix_path('/key/' + custom_escape(sighting.key)) %>"
+                                        hx-target="#item-<%= index %>" hx-swap="outerHTML">
+                                        Delete
+                                    </button>
+                                </td>
                 </tr>
                 <% }); %>
         </tbody>
