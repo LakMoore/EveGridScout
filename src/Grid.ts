@@ -1,24 +1,12 @@
 import { Data } from "./Data";
 import { createHash } from "crypto";
-
-export interface PilotSighting {
-  key: string;
-  name: string;
-  ship: string;
-  alliance: string;
-  corp: string;
-  wormhole: string;
-  firstSeenOnGrid: number;
-  lastSeenOnGrid: number;
-  wormholeName: string;
-  scoutName: string;
-  scoutDiscordId: string;
-}
+import { PilotSighting } from "./PilotSighting";
 
 export class Grid {
   // singleton
   private static instance: Grid;
   private static seenInHoth: Array<PilotSighting> = [];
+  private static scoutReports: Map<string, Date> = new Map<string, Date>();
 
   public static async getInstance(): Promise<Grid> {
     if (!Grid.instance) {
@@ -82,6 +70,25 @@ export class Grid {
 
   public seenSoFar() {
     return Grid.seenInHoth;
+  }
+
+  public getScoutReports() {
+    // remove any reports older than 30 minutes
+
+    const now = Date.now();
+    const oldKeys = Array.from(Grid.scoutReports.keys())
+      .filter((key) =>
+        now - Grid.scoutReports.get(key)!.getTime() > 30 * 60 * 1000
+      );
+    for (const key of oldKeys) {
+      Grid.scoutReports.delete(key);
+    }
+
+    return Grid.scoutReports;
+  }
+
+  public scoutReport(scout: string) {
+    Grid.scoutReports.set(scout, new Date());
   }
 
   public async seenOnGrid(data: string, wormholeClass: string, scout: string, wormhole: string) {

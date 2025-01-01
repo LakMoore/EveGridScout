@@ -9,6 +9,14 @@
 </head>
 
 <body>
+    <h1>Current scouts:</h1>
+    <ul>
+        <% liveScouts.forEach((scout)=> { %>
+            <li>
+                <%= scout %>
+            </li>
+            <% }); %>
+    </ul>
     <h1>Seen in Hoth so far:</h1>
     <table id="pilot-list">
         <thead>
@@ -58,7 +66,7 @@
                                     <%= new Date(sighting.firstSeenOnGrid).toLocaleString() %>
                                 </td>
                                 <td>
-                                    <button hx-delete="<%= fix_path('/key/' + custom_escape(sighting.key)) %>"
+                                    <button hx-delete="<%= fix_path('/key/' + sighting.key) %>"
                                         hx-target="#item-<%= index %>" hx-swap="outerHTML">
                                         Delete
                                     </button>

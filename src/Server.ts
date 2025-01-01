@@ -12,10 +12,6 @@ function fix_path(this_path: string) {
   return `${process.env.SERVER_ROOT_PATH}${this_path}`;
 }
 
-function custom_escape(str: string) {
-  return querystring.escape(str).replace(/\//g, "%2F");
-}
-
 export class Server {
   private readonly app = new Koa();
   private readonly router = new Router();
@@ -56,11 +52,13 @@ export class Server {
     this.router.get("/", async (ctx) => {
       // Use the already initialized grid instance
       const sightings = [...this.grid.seenSoFar().slice(-500)];
+      // get an array of the keys from liveScouts
+      const liveScouts = Array.from(this.grid.getScoutReports().keys());
       sightings.reverse();
       await ctx.render("index", {
         sightings,
         fix_path,
-        custom_escape,
+        liveScouts,
       });
     });
 

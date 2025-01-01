@@ -36,6 +36,9 @@ export class MessageParser {
 
     console.log(message);
 
+    const grid = await Grid.getInstance();
+    grid.scoutReport(message.Scout);
+
     const lines = message.Message.split("\n");
     let wormholeClass = "";
 
@@ -65,7 +68,6 @@ export class MessageParser {
 
     // ensuring we are on grid with a WH should reduce gibberish reports
     if (wormholeClass.length > 0 && pilots.length > 0) {
-      const grid = await Grid.getInstance();
       return Promise.all(
         pilots.map((pilot) => {
           console.log(pilot);
