@@ -73,12 +73,12 @@ export class Grid {
   }
 
   public getScoutReports() {
-    // remove any reports older than 30 minutes
+    // remove any reports older than 5 minutes
 
     const now = Date.now();
     const oldKeys = Array.from(Grid.scoutReports.keys())
       .filter((key) =>
-        now - Grid.scoutReports.get(key)!.getTime() > 30 * 60 * 1000
+        now - Grid.scoutReports.get(key)!.getTime() > 5 * 60 * 1000
       );
     for (const key of oldKeys) {
       Grid.scoutReports.delete(key);
