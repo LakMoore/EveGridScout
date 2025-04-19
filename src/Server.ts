@@ -1,6 +1,7 @@
 import Koa from "koa";
 import Router from "koa-router";
 import serve from "koa-static";
+import mount from 'koa-mount';
 import views from "@ladjs/koa-views";
 import bodyParser from "koa-bodyparser";
 import path from "path";
@@ -65,6 +66,11 @@ export class Server {
     // Set up static file serving
     this.app.use(serve(path.join(__dirname, "../public")));
 
+    // client app installation files
+    this.app.use(
+      mount('/install', serve(path.join(__dirname, "../install")))
+    );
+
     // Set up view rendering
     this.app.use(
       views(path.join(__dirname, "../views"), {
@@ -86,6 +92,10 @@ export class Server {
         liveScouts,
         timeAgo
       });
+    });
+
+    this.router.get("/install", async (ctx) => {
+      ctx.redirect("/install/publish.htm");
     });
 
     this.router.post("/", bodyParser({
