@@ -39,7 +39,13 @@ export class MessageParser {
     const grid = await Grid.getInstance();
 
     // record the ping for this scout
-    grid.scoutReport(message.Scout, message.Wormhole);
+    if (message.Message.startsWith("{")) {
+      const keepalive = JSON.parse(message.Message);
+      const version = keepalive.Version;
+      grid.scoutReport(message.Scout, message.Wormhole, version);
+    } else {
+      grid.scoutReport(message.Scout, message.Wormhole);
+    }
 
     const lines = message.Message.split("\n");
     let wormholeClass = "";

@@ -2,11 +2,20 @@ import { Data } from "./Data";
 import { createHash } from "crypto";
 import { PilotSighting } from "./PilotSighting";
 
+export interface Scout {
+  name: string;
+  wormhole: string;
+  wormholeClass: string;
+  discordId: string;
+  version: string;
+  lastSeen: Date;
+}
+
 export class Grid {
   // singleton
   private static instance: Grid;
   private static seenInHoth: Array<PilotSighting> = [];
-  private static scoutReports: Map<string, Date> = new Map<string, Date>();
+  private static scoutReports: Map<string, Scout> = new Map<string, Scout>();
 
   public static async getInstance(): Promise<Grid> {
     if (!Grid.instance) {
@@ -74,11 +83,10 @@ export class Grid {
 
   public getScoutReports() {
     // remove any reports older than 5 minutes
-
     const now = Date.now();
     const oldKeys = Array.from(Grid.scoutReports.keys())
       .filter((key) =>
-        now - Grid.scoutReports.get(key)!.getTime() > 5 * 60 * 1000
+        now - Grid.scoutReports.get(key)!.lastSeen.getTime() > 5 * 60 * 1000
       );
     for (const key of oldKeys) {
       Grid.scoutReports.delete(key);
@@ -87,8 +95,26 @@ export class Grid {
     return Grid.scoutReports;
   }
 
-  public scoutReport(scout: string, wormhole: string) {
-    Grid.scoutReports.set(`${scout} (${wormhole})`, new Date());
+  public scoutReport(scout: string, wormhole: string, version?: string) {
+    let entry = Grid.scoutReports.get(scout);
+
+    // if doesn't exist, make one
+    if (!entry) {
+      entry = {
+        name: scout,
+        wormhole,
+        wormholeClass: "",
+        discordId: "",
+        version: version || "",
+        lastSeen: new Date(),
+      };
+      Grid.scoutReports.set(scout, entry);
+    }
+
+    // update the entry
+    entry.wormhole = wormhole;
+    if (version) entry.version = version;
+    entry.lastSeen = new Date();
   }
 
   public async activation(scout: string, wormhole: string) {
