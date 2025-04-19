@@ -4,8 +4,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HTMX with Koa and TypeScript</title>
+    <title>GridScout</title>
     <script src="https://unpkg.com/htmx.org@1.9.5"></script>
+    <!-- Google Material Icons -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <!-- MDC Web CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.css">
+    <style>
+        .wrap-cell {
+            min-width: 200px;
+            white-space: normal !important;
+            word-break: break-word;
+        }
+    </style>
 </head>
 
 <body>
@@ -18,63 +29,67 @@
             <% }); %>
     </ul>
     <h1>Seen in Hoth so far:</h1>
-    <table id="pilot-list">
-        <thead>
-            <tr>
-                <th>Ship</th>
-                <th>Character</th>
-                <th>Alliance</th>
-                <th>Corp</th>
-                <th>Last Seen</th>
-                <th>Wormhole</th>
-                <th>Scout</th>
-                <th>First Seen</th>
-                <th></th>
-            </tr>
-        </thead>
-        <tbody>
-            <% sightings.forEach((sighting, index)=> { %>
-                <tr id="item-<%= index %>">
-                    <% if (sighting.ship==='' && sighting.name !=='' && sighting.corp==='' ) { %>
-                        <td colspan="4">
+    <div class="mdc-data-table" data-mdc-auto-init="MDCDataTable">
+        <table class="mdc-data-table__table" aria-label="Sightings Table">
+            <thead>
+                <tr class="mdc-data-table__header-row">
+                    <th class="mdc-data-table__header-cell" role="columnheader" scope="col">Ship</th>
+                    <th class="mdc-data-table__header-cell" role="columnheader" scope="col">Character</th>
+                    <th class="mdc-data-table__header-cell" role="columnheader" scope="col">Alliance</th>
+                    <th class="mdc-data-table__header-cell" role="columnheader" scope="col">Corp</th>
+                    <th class="mdc-data-table__header-cell" role="columnheader" scope="col">Last Seen</th>
+                    <th class="mdc-data-table__header-cell" role="columnheader" scope="col">Wormhole</th>
+                    <th class="mdc-data-table__header-cell" role="columnheader" scope="col">First Seen</th>
+                    <th class="mdc-data-table__header-cell" role="columnheader" scope="col">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="mdc-data-table__content">
+                <% sightings.forEach(function(sighting, index) { %>
+                    <tr class="mdc-data-table__row" id="item-<%= index %>">
+                        <td class="mdc-data-table__cell wrap-cell">
+                            <%= sighting.ship %>
+                        </td>
+                        <td class="mdc-data-table__cell wrap-cell">
                             <%= sighting.name %>
                         </td>
-                        <% } else { %>
-                            <td>
-                                <%= sighting.ship %>
-                            </td>
-                            <td>
-                                <%= sighting.name %>
-                            </td>
-                            <td>
-                                <%= sighting.alliance %>
-                            </td>
-                            <td>
-                                <%= sighting.corp %>
-                            </td>
-                            <% } %>
-                                <td>
-                                    <%= new Date(sighting.lastSeenOnGrid).toLocaleString() %>
-                                </td>
-                                <td>
-                                    <%= sighting.wormholeName %> (<%= sighting.wormhole %>)
-                                </td>
-                                <td>
-                                    <%= sighting.scoutName %>
-                                </td>
-                                <td>
-                                    <%= new Date(sighting.firstSeenOnGrid).toLocaleString() %>
-                                </td>
-                                <td>
-                                    <button hx-delete="<%= fix_path('/key/' + sighting.key) %>"
-                                        hx-target="#item-<%= index %>" hx-swap="outerHTML">
-                                        Delete
-                                    </button>
-                                </td>
-                </tr>
-                <% }); %>
-        </tbody>
-    </table>
+                        <td class="mdc-data-table__cell">
+                            <%= sighting.alliance %>
+                        </td>
+                        <td class="mdc-data-table__cell">
+                            <%= sighting.corp %>
+                        </td>
+                        <td class="mdc-data-table__cell"
+                            title="<%= new Date(sighting.lastSeenOnGrid).toUTCString().replace('GMT', 'EVE') %>">
+                            <div style="white-space:nowrap;">
+                                <%= timeAgo(new Date(sighting.lastSeenOnGrid)) %>
+                            </div>
+                        </td>
+                        <td class="mdc-data-table__cell" title="<%= sighting.scoutName %>">
+                            <%= sighting.wormholeName %> (<%= sighting.wormhole %>)
+                        </td>
+                        <td class="mdc-data-table__cell"
+                            title="<%= new Date(sighting.firstSeenOnGrid).toUTCString().replace('GMT', 'EVE') %>">
+                            <div style="white-space:nowrap;">
+                                <%= timeAgo(new Date(sighting.firstSeenOnGrid)) %>
+                            </div>
+                        </td>
+                        <td class="mdc-data-table__cell">
+                            <button class="mdc-button mdc-button--outlined"
+                                hx-delete="<%= fix_path('/key/' + sighting.key) %>" hx-target="#item-<%= index %>"
+                                hx-swap="outerHTML">
+                                <span class="mdc-button__label">Delete</span>
+                            </button>
+                        </td>
+                    </tr>
+                    <% }); %>
+            </tbody>
+        </table>
+    </div>
+    <!-- MDC Web JS -->
+    <script src="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.js"></script>
+    <script>
+        mdc.autoInit();
+    </script>
 </body>
 
 </html>
