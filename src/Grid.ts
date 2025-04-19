@@ -87,8 +87,29 @@ export class Grid {
     return Grid.scoutReports;
   }
 
-  public scoutReport(scout: string) {
-    Grid.scoutReports.set(scout, new Date());
+  public scoutReport(scout: string, wormhole: string) {
+    Grid.scoutReports.set(`${scout} (${wormhole})`, new Date());
+  }
+
+  public async activation(scout: string, wormhole: string) {
+
+    const key = `Activation/${scout}/${wormhole}/${Date.now()}`;
+
+    Grid.seenInHoth.push({
+      key,
+      name: "Activation",
+      ship: "",
+      alliance: "",
+      corp: "",
+      wormhole: "",
+      firstSeenOnGrid: Date.now(),
+      lastSeenOnGrid: Date.now(),
+      wormholeName: wormhole,
+      scoutName: scout,
+      scoutDiscordId: "",
+    });
+
+    await this.save();
   }
 
   public async seenOnGrid(data: string, wormholeClass: string, scout: string, wormhole: string) {
