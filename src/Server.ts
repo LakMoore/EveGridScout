@@ -68,7 +68,17 @@ export class Server {
 
     // client app installation files
     this.app.use(
-      mount('/install', serve(path.join(__dirname, "../install")))
+      mount('/install', serve(path.join(__dirname, "../install"), {
+        setHeaders: (res, filePath) => {
+          if (filePath.endsWith('.application')) {
+            res.setHeader('Content-Type', 'application/x-ms-application');
+          } else if (filePath.endsWith('.manifest')) {
+            res.setHeader('Content-Type', 'application/x-ms-manifest');
+          } else if (filePath.endsWith('.deploy')) {
+            res.setHeader('Content-Type', 'application/octet-stream');
+          }
+        }
+      }))
     );
 
     // Set up view rendering
