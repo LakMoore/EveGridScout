@@ -108,7 +108,7 @@ export class Server {
     });
 
     this.router.get("/install", async (ctx) => {
-      ctx.redirect("./install/publish.htm");
+      ctx.redirect("./install/publish.html");
     });
 
     this.router.post("/", bodyParser({
