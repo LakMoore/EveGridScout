@@ -1,4 +1,5 @@
 import { Grid } from "./Grid";
+import { ScoutEntry } from "./ScoutEntry";
 import { ScoutMessage } from "./ScoutMessage";
 
 export class MessageParser {
@@ -39,13 +40,7 @@ export class MessageParser {
     const grid = await Grid.getInstance();
 
     // record the ping for this scout
-    if (message.Message.startsWith("{")) {
-      const keepalive = JSON.parse(message.Message);
-      const version = keepalive.Version;
-      grid.scoutReport(message.Scout, message.Wormhole, version);
-    } else {
-      grid.scoutReport(message.Scout, message.Wormhole);
-    }
+    grid.scoutReport(message);
 
     const lines = message.Message.split("\n");
     let wormholeClass = "";
@@ -53,42 +48,92 @@ export class MessageParser {
     if (message.Message == "Possible activation detected!") {
       // record an activation in the log
       console.log(`Activation detected by ${message.Scout} on ${message.Wormhole}`);
-      grid.activation(message.Scout, message.Wormhole);
+      grid.activation(message.Scout, message.Wormhole, message.System ?? "");
     } else {
-      const pilots: string[] = [];
-
-      for (const line of lines) {
-        if (line.length == 0 || line == "Nothing Found") {
-          // do nothing
-        } else if (line.startsWith("Wormhole ")) {
-          // we're on grid with a wormhole
-          wormholeClass = line.split(" ")[1];
-        } else {
-          // PILOT SHIP [CORP] [ALLIANCE]
-          const words = line.split(" ");
-
-          const key = line;
-          // ALLIANCE is optional!
-          if (words.length > 2) {
-            // if we have 2 words, we're probably a pilot row
-            if (this.headerWords.filter((h) => words.indexOf(h) > -1).length < 3) {
-              // if we have fewer than 3 header words, we're not the header
-              pilots.push(key);
-            }
-          }
-        }
-      }
+      const pilots: ScoutEntry[] = message.Entries ?? this.parsePilots(lines, wormholeClass);
 
       // ensuring we are on grid with a WH should reduce gibberish reports
       if (wormholeClass.length > 0 && pilots.length > 0) {
         return Promise.all(
           pilots.map((pilot) => {
             console.log(pilot);
-            grid.seenOnGrid(pilot, wormholeClass, message.Scout, message.Wormhole);
+            grid.seenOnGrid(pilot, wormholeClass, message.Scout, message.Wormhole, message.System ?? "");
           })
         );
       }
     }
 
+  }
+
+  /**
+ * parse the pilots from the lines
+ * @param lines the lines from the message
+ * @param wormholeClass the wormhole class found in the lines
+ * @returns an array of pilot strings
+ */
+  private parsePilots(lines: string[], wormholeClass: string): ScoutEntry[] {
+    const pilots: ScoutEntry[] = [];
+
+    for (const line of lines) {
+      if (line.length == 0 || line == "Nothing Found") {
+        // do nothing
+      } else if (line.startsWith("Wormhole ")) {
+        // we're on grid with a wormhole
+        wormholeClass = line.split(" ")[1];
+      } else {
+        // PILOT SHIP [CORP] [ALLIANCE]
+        const words = line.split(" ");
+
+        const key = line;
+        // ALLIANCE is optional!
+        if (words.length > 2) {
+          // if we have 2 words, we're probably a pilot row
+          if (this.headerWords.filter((h) => words.indexOf(h) > -1).length < 3) {
+            // if we have fewer than 3 header words, we're not the header
+
+            // data = "Vexor Navy Issue [FFEW] [WEFEW] Sleezi Estidal"
+
+            // find the index of words that start with square brackets
+            const shipNameLength = words.findIndex((word) => word.startsWith("[") || word.endsWith("]"));
+
+            var shipName = "";
+            var corp = "";
+            var alliance = "";
+            var name = "";
+
+            if (shipNameLength === -1) {
+              shipName = line;
+            } else {
+              // ship is the first shipNameLength words
+              shipName = words.slice(0, shipNameLength).join(" ");
+
+              // corp is the first word after shipNameLength
+              if (words.length > shipNameLength) {
+                corp = words[shipNameLength].replace("[", "").replace("]", "");
+              }
+
+              // alliance is the second word after shipNameLength
+              if (shipNameLength + 1 <= words.length) {
+                alliance = words[shipNameLength + 1].replace("[", "").replace("]", "");
+              }
+
+              // name is the rest of the words
+              if (shipNameLength + 2 <= words.length) {
+                name = words.slice(shipNameLength + 2).join(" ");
+              }
+            }
+
+            pilots.push({
+              Type: shipName,
+              Corporation: corp,
+              Alliance: alliance,
+              Name: name
+            } as ScoutEntry);
+          }
+        }
+      }
+    }
+
+    return pilots;
   }
 }

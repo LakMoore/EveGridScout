@@ -10,4 +10,5 @@ export interface PilotSighting {
     wormholeName: string;
     scoutName: string;
     scoutDiscordId: string;
+    system: string;
 }

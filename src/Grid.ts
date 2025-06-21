@@ -1,9 +1,11 @@
 import { Data } from "./Data";
-import { createHash } from "crypto";
 import { PilotSighting } from "./PilotSighting";
+import { ScoutEntry } from "./ScoutEntry";
+import { ScoutMessage } from "./ScoutMessage";
 
 export interface Scout {
   name: string;
+  system: string;
   wormhole: string;
   wormholeClass: string;
   discordId: string;
@@ -55,6 +57,7 @@ export class Grid {
             wormholeName: "",
             scoutName: "",
             scoutDiscordId: "",
+            system: ""
           };
         });
       } else {
@@ -95,29 +98,38 @@ export class Grid {
     return Grid.scoutReports;
   }
 
-  public scoutReport(scout: string, wormhole: string, version?: string) {
-    let entry = Grid.scoutReports.get(scout);
+  public scoutReport(scout: ScoutMessage) {
+    let entry = Grid.scoutReports.get(scout.Scout);
 
     // if doesn't exist, make one
     if (!entry) {
       entry = {
-        name: scout,
-        wormhole,
+        name: scout.Scout,
+        system: scout.System,
+        wormhole: scout.Wormhole,
         wormholeClass: "",
         discordId: "",
-        version: version || "",
+        version: scout.Version,
         lastSeen: new Date(),
       };
-      Grid.scoutReports.set(scout, entry);
+      Grid.scoutReports.set(scout.Scout, entry);
     }
 
     // update the entry
-    entry.wormhole = wormhole;
-    if (version) entry.version = version;
+    if (scout.Disconnected) {
+      entry.wormhole = "Lost Connection";
+    } else if (scout.Wormhole.length > 0) {
+      entry.wormhole = scout.Wormhole;
+    } else {
+      entry.wormhole = "No Wormhole";
+    }
+
+    entry.system = scout.System;
+    entry.version = scout.Version;
     entry.lastSeen = new Date();
   }
 
-  public async activation(scout: string, wormhole: string) {
+  public async activation(scout: string, wormhole: string, system: string) {
 
     const key = `Activation/${scout}/${wormhole}/${Date.now()}`;
 
@@ -133,78 +145,43 @@ export class Grid {
       wormholeName: wormhole,
       scoutName: scout,
       scoutDiscordId: "",
+      system
     });
 
     await this.save();
   }
 
-  public async seenOnGrid(data: string, wormholeClass: string, scout: string, wormhole: string) {
+  public async seenOnGrid(entry: ScoutEntry, wormholeClass: string, scoutName: string, wormholeCode: string, system: string) {
 
-    // This scout saw this pilot on this grid
-    var key = data + "/" + scout + "/" + wormhole;
+    // We want to track this pilot in this ship
+    var key = `${entry.Name}/${entry.Type}`;
 
-    // Hash the key
-    key = createHash("sha256").update(key).digest("hex");
-    console.log(key);
+    // get the most recent sighting of this pilot in this ship
+    const recentSighting = Grid.seenInHoth.find((p) => p.key === key);
 
-    const pilot = Grid.seenInHoth.find((p) => p.key === key);
-
-    // data = "Vexor Navy Issue [FFEW] [WEFEW] Sleezi Estidal"
-
-    const words = data.split(" ");
-    // find the index of words that start with square brackets
-    const shipNameLength = words.findIndex((word) => word.startsWith("[") || word.endsWith("]"));
-
-    var shipName = "";
-    var corp = "";
-    var alliance = "";
-    var name = "";
-
-    if (shipNameLength === -1) {
-      shipName = data;
-    } else {
-      // ship is the first shipNameLength words
-      shipName = words.slice(0, shipNameLength).join(" ");
-
-      // corp is the first word after shipNameLength
-      if (words.length > shipNameLength) {
-        corp = words[shipNameLength].replace("[", "").replace("]", "");
-      }
-
-      // alliance is the second word after shipNameLength
-      if (shipNameLength + 1 <= words.length) {
-        alliance = words[shipNameLength + 1].replace("[", "").replace("]", "");
-      }
-
-      // name is the rest of the words
-      if (shipNameLength + 2 <= words.length) {
-        name = words.slice(shipNameLength + 2).join(" ");
-      }
-    }
-
-
-    if (!pilot) {
-      // first time we've seen this pilot
+    // if we don't have a recent sighting or it was on a different wormhole
+    if (!recentSighting || recentSighting.wormhole !== wormholeCode) {
+      // call this a new sighting!
       Grid.seenInHoth.push({
         key,
-        name,
-        ship: shipName,
-        alliance,
-        corp,
+        name: entry.Name ?? "",
+        ship: entry.Type ?? "",
+        alliance: entry.Alliance ?? "",
+        corp: entry.Corporation ?? "",
         wormhole: wormholeClass,
         firstSeenOnGrid: Date.now(),
         lastSeenOnGrid: Date.now(),
-        wormholeName: wormhole,
-        scoutName: scout,
+        wormholeName: wormholeCode,
+        scoutName: scoutName,
         scoutDiscordId: "",
+        system
       });
     } else {
-      // seen before
-      pilot.lastSeenOnGrid = Date.now();
-      pilot.wormhole = wormholeClass;
+      // seen this pilot at this location most recently
+      recentSighting.lastSeenOnGrid = Date.now();
       // move it to the end of the list
       Grid.seenInHoth = Grid.seenInHoth.filter((p) => p.key !== key);
-      Grid.seenInHoth.push(pilot);
+      Grid.seenInHoth.push(recentSighting);
     }
     await this.save();
   }

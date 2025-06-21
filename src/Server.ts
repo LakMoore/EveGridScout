@@ -93,17 +93,12 @@ export class Server {
 
     this.router.get("/", async (ctx) => {
       // Use the already initialized grid instance
-      const sightings = [...this.grid.seenSoFar().slice(-500)];
-      // get an array of strings the liveScouts
-      const liveScouts = Array.from(
-        this.grid.getScoutReports().values()).map(scout =>
-          `${scout.name} (${scout.wormhole}) ${scout.version} ${timeAgo(scout.lastSeen)}`
-        );
+      const sightings = [...this.grid.seenSoFar().slice(-300)];
       sightings.reverse();
       await ctx.render("index", {
         sightings,
         fix_path,
-        liveScouts,
+        liveScouts: Array.from(this.grid.getScoutReports().values()),
         timeAgo
       });
     });
