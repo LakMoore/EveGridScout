@@ -16,13 +16,27 @@
             white-space: normal !important;
             word-break: break-word;
         }
+
+        .header-actions {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            z-index: 1000;
+            display: flex;
+            gap: 12px;
+        }
     </style>
 </head>
 
 <body>
-    <div style="position: absolute; top: 20px; right: 30px; z-index: 1000;">
-        <a href="install" class="mdc-button mdc-button--raised" style="min-width: 0; padding: 0 12px;">
-            <span class="mdc-button__label">Install GridScout Client</span>
+    <div class="header-actions">
+        <a href="errors" class="mdc-button mdc-button--raised">
+            <i class="material-icons mdc-button__icon" aria-hidden="true">error</i>
+            <span class="mdc-button__label">Error Logs</span>
+        </a>
+        <a href="install" class="mdc-button mdc-button--raised">
+            <i class="material-icons mdc-button__icon" aria-hidden="true">install_mobile</i>
+            <span class="mdc-button__label">Install Client</span>
         </a>
     </div>
     <h1>Current scouts:</h1>

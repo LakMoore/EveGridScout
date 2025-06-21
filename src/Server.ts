@@ -8,6 +8,7 @@ import path from "path";
 import querystring from "querystring";
 import { Grid } from "./Grid";
 import { MessageParser } from "./MessageParser";
+import { Data } from "./Data"; // Import the Data class
 
 function fix_path(this_path: string) {
   return `${process.env.SERVER_ROOT_PATH}${this_path}`;
@@ -111,7 +112,21 @@ export class Server {
       ctx.redirect("./install/Publish.html");
     });
 
-    this.router.post("/", bodyParser({
+    this.router.get("/errors", async (ctx) => {
+      try {
+        const errors = await Data.getInstance().getErrorLogs(100); // Get 100 most recent errors
+        await ctx.render("errors", { errors });
+      } catch (error) {
+        console.error('Failed to load error logs:', error);
+        ctx.status = 500;
+        await ctx.render('error', {
+          message: 'Failed to load error logs',
+          error: error instanceof Error ? error.message : 'Unknown error'
+        });
+      }
+    });
+
+    this.router.post(["/", "/api/report"], bodyParser({
       enableTypes: ['text', 'json'],
     }), async (ctx) => {
       console.log(ctx.request.rawBody);
@@ -133,6 +148,74 @@ export class Server {
           ctx.status = 404;
           ctx.body = "Key Not found";
         }
+      }
+    });
+
+    this.router.post("/api/error", bodyParser({
+      enableTypes: ['json'],
+    }), async (ctx) => {
+      try {
+        const errorData = ctx.request.body;
+        const context = {
+          ip: ctx.ip,
+          userAgent: ctx.headers['user-agent'],
+          path: ctx.path,
+          method: ctx.method,
+        };
+
+        // Log the error to persistent storage
+        const errorId = await Data.getInstance().logError(errorData, context);
+
+        console.error('Client Error Report:', {
+          id: errorId,
+          timestamp: new Date().toISOString(),
+          ...context,
+          error: errorData
+        });
+
+        ctx.status = 200;
+        ctx.body = {
+          status: 'error_received',
+          errorId
+        };
+      } catch (error) {
+        console.error('Error processing error report:', error);
+
+        // Try to log the error about error reporting failing
+        try {
+          await Data.getInstance().logError({
+            message: 'Failed to process error report',
+            originalError: error instanceof Error ? error.message : String(error)
+          }, {
+            path: ctx.path,
+            method: ctx.method
+          });
+        } catch (logError) {
+          console.error('Failed to log error processing error:', logError);
+        }
+
+        ctx.status = 500;
+        ctx.body = {
+          error: 'Failed to process error report',
+          errorId: null
+        };
+      }
+    });
+
+    this.router.post("/api/errors/clear", async (ctx) => {
+      try {
+        const success = await Data.getInstance().clearErrorLogs();
+        if (success) {
+          ctx.status = 200;
+          ctx.body = { status: 'success' };
+        } else {
+          ctx.status = 500;
+          ctx.body = { error: 'Failed to clear error logs' };
+        }
+      } catch (error) {
+        console.error('Failed to clear error logs:', error);
+        ctx.status = 500;
+        ctx.body = { error: 'Failed to clear error logs' };
       }
     });
 

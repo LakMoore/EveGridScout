@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Error Logs - GridScout</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        .error-item {
+            transition: all 0.2s ease;
+        }
+
+        .error-item:hover {
+            background-color: #f7fafc;
+        }
+
+        .error-details {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .error-details.active {
+            max-height: 1500px;
+            overflow-y: auto;
+        }
+
+        .stack-trace {
+            white-space: pre;
+            font-family: monospace;
+            background: #f8f8f8;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 5px 0;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100">
+    <div class="container mx-auto px-4 py-8">
+        <header class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-800">Error Logs</h1>
+            <div class="flex justify-between items-center mt-2">
+                <p class="text-gray-600">Showing <%= errors.length %> most recent errors</p>
+                <div>
+                    <a href="/" class="text-blue-600 hover:underline mr-4">Back to Dashboard</a>
+                    <button onclick="clearLogs()" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded">
+                        Clear All Logs
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+            <% if (errors.length===0) { %>
+                <div class="p-8 text-center text-gray-500">
+                    No error logs found.
+                </div>
+                <% } else { %>
+                    <div class="divide-y divide-gray-200">
+                        <% errors.forEach(error=> { %>
+                            <div class="error-item p-4 hover:bg-gray-50">
+                                <div class="flex justify-between items-center cursor-pointer"
+                                    onclick="toggleErrorDetails('<%= error.id %>')">
+                                    <div>
+                                        <div class="font-medium text-gray-900">
+                                            <%= error.error.message || 'Unknown Error' %>
+                                        </div>
+                                        <div class="text-sm text-gray-500 mt-1">
+                                            <%= new Date(error.timestamp).toLocaleString() %> •
+                                                <%= error.ip || 'No IP' %> •
+                                                    <%= error.userAgent ? error.userAgent.substring(0, 30) + '...'
+                                                        : 'No User Agent' %>
+                                        </div>
+                                    </div>
+                                    <svg id="arrow-<%= error.id %>"
+                                        class="w-5 h-5 text-gray-400 transform transition-transform" fill="none"
+                                        stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M19 9l-7 7-7-7"></path>
+                                    </svg>
+                                </div>
+
+                                <div id="details-<%= error.id %>"
+                                    class="error-details mt-3 pl-2 border-l-4 border-blue-200">
+                                    <div class="space-y-4">
+                                        <% if (error.error.StackTrace) { %>
+                                            <div>
+                                                <h3 class="font-medium text-gray-700 mb-1">Stack Trace:</h3>
+                                                <div class="stack-trace"><%- error.error.StackTrace %></div>
+                                            </div>
+                                            <% } %>
+                                                <% if (error.error.StackTraceString) { %>
+                                                    <div>
+                                                        <h3 class="font-medium text-gray-700 mb-1">Stack Trace String:
+                                                        </h3>
+                                                        <div class="stack-trace"><%- error.error.StackTraceString %>
+                                                        </div>
+                                                    </div>
+                                                    <% } %>
+                                                        <div>
+                                                            <h3 class="font-medium text-gray-700 mb-1">Full Error
+                                                                Details:</h3>
+                                                            <div class="bg-gray-50 p-4 rounded-md overflow-x-auto">
+                                                                <pre
+                                                                    class="text-sm text-gray-800"><code><%= JSON.stringify(error, null, 2) %></code></pre>
+                                                            </div>
+                                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <% }); %>
+                    </div>
+                    <% } %>
+        </div>
+    </div>
+
+    <script>
+        function toggleErrorDetails(id) {
+            const details = document.getElementById(`details-${id}`);
+            const arrow = document.getElementById(`arrow-${id}`);
+
+            details.classList.toggle('active');
+            arrow.classList.toggle('rotate-180');
+        }
+
+        async function clearLogs() {
+            if (confirm('Are you sure you want to clear all error logs? This cannot be undone.')) {
+                try {
+                    const response = await fetch('/api/errors/clear', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                    });
+
+                    if (response.ok) {
+                        window.location.reload();
+                    } else {
+                        alert('Failed to clear logs. Please try again.');
+                    }
+                } catch (error) {
+                    console.error('Error clearing logs:', error);
+                    alert('An error occurred while clearing logs.');
+                }
+            }
+        }
+    </script>
+</body>
+
+</html>
