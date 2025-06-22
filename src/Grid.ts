@@ -157,7 +157,7 @@ export class Grid {
     var key = `${entry.Name}/${entry.Type}`;
 
     // get the most recent sighting of this pilot in this ship
-    const recentSighting = Grid.seenInHoth.find((p) => p.key === key);
+    const recentSighting = Grid.seenInHoth.findLast((p) => p.key === key);
 
     // if we don't have a recent sighting or it was on a different wormhole
     if (!recentSighting || recentSighting.wormhole !== wormholeCode) {
