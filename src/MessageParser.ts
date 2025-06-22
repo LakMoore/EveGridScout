@@ -50,7 +50,19 @@ export class MessageParser {
       console.log(`Activation detected by ${message.Scout} on ${message.Wormhole}`);
       grid.activation(message.Scout, message.Wormhole, message.System ?? "");
     } else {
-      const pilots: ScoutEntry[] = message.Entries ?? this.parsePilots(lines, wormholeClass);
+      const pilots: ScoutEntry[] =
+        message.Entries?.filter((p) => !p.Type?.startsWith("Wormhole "))
+        ?? this.parsePilots(lines);
+
+      // use Entries if available
+      const wh = message.Entries?.find((p) => p.Type?.startsWith("Wormhole "));
+      if (wh) {
+        wormholeClass = wh.Type?.split(" ")[1] ?? "";
+      } else {
+        // otherwise parse the lines to find the wormhole
+        const wormhole = lines.find((line) => line.startsWith("Wormhole "))
+        wormholeClass = wormhole?.split(" ")[1] ?? "";
+      }
 
       // ensuring we are on grid with a WH should reduce gibberish reports
       if (wormholeClass.length > 0 && pilots.length > 0) {
@@ -71,15 +83,14 @@ export class MessageParser {
  * @param wormholeClass the wormhole class found in the lines
  * @returns an array of pilot strings
  */
-  private parsePilots(lines: string[], wormholeClass: string): ScoutEntry[] {
+  private parsePilots(lines: string[]): ScoutEntry[] {
     const pilots: ScoutEntry[] = [];
 
     for (const line of lines) {
       if (line.length == 0 || line == "Nothing Found") {
         // do nothing
       } else if (line.startsWith("Wormhole ")) {
-        // we're on grid with a wormhole
-        wormholeClass = line.split(" ")[1];
+        // this line is the wormhole so skip it
       } else {
         // PILOT SHIP [CORP] [ALLIANCE]
         const words = line.split(" ");
