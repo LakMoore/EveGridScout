@@ -65,7 +65,10 @@ export class MessageParser {
       }
 
       // ensuring we are on grid with a WH should reduce gibberish reports
-      if (wormholeClass.length > 0 && pilots.length > 0) {
+      // if (wormholeClass.length > 0 && pilots.length > 0) {
+
+      // no longer want to just scout wormholes
+      if (pilots.length > 0) {
         return Promise.all(
           pilots.map((pilot) => {
             console.log(pilot);
