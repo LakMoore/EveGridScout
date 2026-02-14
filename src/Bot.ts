@@ -2,10 +2,10 @@ import dotenv from "dotenv";
 import { Client, IntentsBitField } from "discord.js";
 import axiosRetry from "axios-retry";
 import axios from "axios";
-import ready from "./listeners/ready";
-import interactionCreate from "./listeners/interactionCreate";
-import { Server } from "./Server";
-import { Data } from "./Data";
+import ready from "./listeners/ready.js";
+import interactionCreate from "./listeners/interactionCreate.js";
+import { Server } from "./Server.js";
+import { Data } from "./Data.js";
 
 async function main() {
   dotenv.config();
@@ -33,4 +33,9 @@ async function main() {
   server.start(Number(process.env.SERVER_PORT ?? 3000));
 }
 
-main();
+try {
+  await main();
+} catch (e) {
+  console.error("Error starting bot:", e);
+  process.exit(1);
+}

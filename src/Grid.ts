@@ -1,7 +1,7 @@
-import { Data } from "./Data";
-import { PilotSighting } from "./PilotSighting";
-import { ScoutEntry } from "./ScoutEntry";
-import { ScoutMessage } from "./ScoutMessage";
+import { Data } from "./Data.js";
+import { PilotSighting } from "./PilotSighting.js";
+import { ScoutEntry } from "./ScoutEntry.js";
+import { ScoutMessage } from "./ScoutMessage.js";
 
 export interface Scout {
   name: string;
@@ -57,7 +57,7 @@ export class Grid {
             wormholeName: "",
             scoutName: "",
             scoutDiscordId: "",
-            system: ""
+            system: "",
           };
         });
       } else {
@@ -87,10 +87,10 @@ export class Grid {
   public getScoutReports() {
     // remove any reports older than 5 minutes
     const now = Date.now();
-    const oldKeys = Array.from(Grid.scoutReports.keys())
-      .filter((key) =>
-        now - Grid.scoutReports.get(key)!.lastSeen.getTime() > 5 * 60 * 1000
-      );
+    const oldKeys = Array.from(Grid.scoutReports.keys()).filter(
+      (key) =>
+        now - Grid.scoutReports.get(key)!.lastSeen.getTime() > 5 * 60 * 1000,
+    );
     for (const key of oldKeys) {
       Grid.scoutReports.delete(key);
     }
@@ -130,7 +130,6 @@ export class Grid {
   }
 
   public async activation(scout: string, wormhole: string, system: string) {
-
     const key = `Activation/${scout}/${wormhole}/${Date.now()}`;
 
     Grid.seenInHoth.push({
@@ -145,14 +144,19 @@ export class Grid {
       wormholeName: wormhole,
       scoutName: scout,
       scoutDiscordId: "",
-      system
+      system,
     });
 
     await this.save();
   }
 
-  public async seenOnGrid(entry: ScoutEntry, wormholeClass: string, scoutName: string, wormholeCode: string, system: string) {
-
+  public async seenOnGrid(
+    entry: ScoutEntry,
+    wormholeClass: string,
+    scoutName: string,
+    wormholeCode: string,
+    system: string,
+  ) {
     // We want to track this pilot in this ship
     var key = `${entry.Name}/${entry.Type}`;
 
@@ -174,7 +178,7 @@ export class Grid {
         wormholeName: wormholeCode,
         scoutName: scoutName,
         scoutDiscordId: "",
-        system
+        system,
       });
     } else {
       // seen this pilot at this location most recently

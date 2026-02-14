@@ -1,6 +1,4 @@
-import { Command } from "./Command";
-import { Hello } from "./commands/hello";
+import { Command } from "./Command.js";
+import { Hello } from "./commands/hello.js";
 
-export const Commands: Command[] = [
-  Hello,
-];
+export const Commands: Command[] = [Hello];

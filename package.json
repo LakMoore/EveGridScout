@@ -2,11 +2,13 @@
   "name": "discordbotts",
   "version": "1.0.0",
   "description": "Boilerplate code for a Typescript Discord Bot",
-  "main": "src/Bot.ts",
+  "main": "dist/Bot.js",
   "scripts": {
-    "start": "ts-node src/Bot.ts",
+    "build": "npx tsc",
+    "start": "node dist/Bot.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "type": "module",
   "author": "Lak Moore",
   "license": "ISC",
   "dependencies": {

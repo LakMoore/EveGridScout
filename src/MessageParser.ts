@@ -1,17 +1,12 @@
-import { Grid } from "./Grid";
-import { ScoutEntry } from "./ScoutEntry";
-import { ScoutMessage } from "./ScoutMessage";
+import { Grid } from "./Grid.js";
+import { ScoutEntry } from "./ScoutEntry.js";
+import { ScoutMessage } from "./ScoutMessage.js";
 
 export class MessageParser {
   // singleton
   private static instance: MessageParser;
 
-  private headerWords = [
-    "Type",
-    "Corporation",
-    "Alliance",
-    "Name",
-  ];
+  private headerWords = ["Type", "Corporation", "Alliance", "Name"];
 
   public static getInstance(): MessageParser {
     if (!MessageParser.instance) {
@@ -21,7 +16,6 @@ export class MessageParser {
   }
 
   public async parse(body: string) {
-
     // if message is a json object, cast it to a ScoutMessage
     let message: ScoutMessage;
     try {
@@ -30,8 +24,8 @@ export class MessageParser {
       console.log(e);
       message = {
         Message: body,
-        Scout: 'unknown',
-        Wormhole: 'unknown'
+        Scout: "unknown",
+        Wormhole: "unknown",
       } as ScoutMessage;
     }
 
@@ -47,12 +41,14 @@ export class MessageParser {
 
     if (message.Message == "Possible activation detected!") {
       // record an activation in the log
-      console.log(`Activation detected by ${message.Scout} on ${message.Wormhole}`);
+      console.log(
+        `Activation detected by ${message.Scout} on ${message.Wormhole}`,
+      );
       grid.activation(message.Scout, message.Wormhole, message.System ?? "");
     } else {
       const pilots: ScoutEntry[] =
-        message.Entries?.filter((p) => !p.Type?.startsWith("Wormhole "))
-        ?? this.parsePilots(lines);
+        message.Entries?.filter((p) => !p.Type?.startsWith("Wormhole ")) ??
+        this.parsePilots(lines);
 
       // use Entries if available
       const wh = message.Entries?.find((p) => p.Type?.startsWith("Wormhole "));
@@ -60,7 +56,7 @@ export class MessageParser {
         wormholeClass = wh.Type?.split(" ")[1] ?? "";
       } else {
         // otherwise parse the lines to find the wormhole
-        const wormhole = lines.find((line) => line.startsWith("Wormhole "))
+        const wormhole = lines.find((line) => line.startsWith("Wormhole "));
         wormholeClass = wormhole?.split(" ")[1] ?? "";
       }
 
@@ -72,20 +68,25 @@ export class MessageParser {
         return Promise.all(
           pilots.map((pilot) => {
             console.log(pilot);
-            grid.seenOnGrid(pilot, wormholeClass, message.Scout, message.Wormhole, message.System ?? "");
-          })
+            grid.seenOnGrid(
+              pilot,
+              wormholeClass,
+              message.Scout,
+              message.Wormhole,
+              message.System ?? "",
+            );
+          }),
         );
       }
     }
-
   }
 
   /**
- * parse the pilots from the lines
- * @param lines the lines from the message
- * @param wormholeClass the wormhole class found in the lines
- * @returns an array of pilot strings
- */
+   * parse the pilots from the lines
+   * @param lines the lines from the message
+   * @param wormholeClass the wormhole class found in the lines
+   * @returns an array of pilot strings
+   */
   private parsePilots(lines: string[]): ScoutEntry[] {
     const pilots: ScoutEntry[] = [];
 
@@ -102,13 +103,17 @@ export class MessageParser {
         // ALLIANCE is optional!
         if (words.length > 2) {
           // if we have 2 words, we're probably a pilot row
-          if (this.headerWords.filter((h) => words.indexOf(h) > -1).length < 3) {
+          if (
+            this.headerWords.filter((h) => words.indexOf(h) > -1).length < 3
+          ) {
             // if we have fewer than 3 header words, we're not the header
 
             // data = "Vexor Navy Issue [FFEW] [WEFEW] Sleezi Estidal"
 
             // find the index of words that start with square brackets
-            const shipNameLength = words.findIndex((word) => word.startsWith("[") || word.endsWith("]"));
+            const shipNameLength = words.findIndex(
+              (word) => word.startsWith("[") || word.endsWith("]"),
+            );
 
             var shipName = "";
             var corp = "";
@@ -128,7 +133,9 @@ export class MessageParser {
 
               // alliance is the second word after shipNameLength
               if (shipNameLength + 1 <= words.length) {
-                alliance = words[shipNameLength + 1].replace("[", "").replace("]", "");
+                alliance = words[shipNameLength + 1]
+                  .replace("[", "")
+                  .replace("]", "");
               }
 
               // name is the rest of the words
@@ -141,7 +148,7 @@ export class MessageParser {
               Type: shipName,
               Corporation: corp,
               Alliance: alliance,
-              Name: name
+              Name: name,
             } as ScoutEntry);
           }
         }
