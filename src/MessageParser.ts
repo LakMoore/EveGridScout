@@ -20,7 +20,8 @@ export class MessageParser {
     let message: ScoutMessage;
     try {
       message = JSON.parse(body) as ScoutMessage;
-    } catch (e) {
+    }
+    catch (e) {
       console.log(e);
       message = {
         Message: body,
@@ -45,16 +46,18 @@ export class MessageParser {
         `Activation detected by ${message.Scout} on ${message.Wormhole}`,
       );
       grid.activation(message.Scout, message.Wormhole, message.System ?? "");
-    } else {
+    }
+    else {
       const pilots: ScoutEntry[] =
-        message.Entries?.filter((p) => !p.Type?.startsWith("Wormhole ")) ??
-        this.parsePilots(lines);
+        message.Entries?.filter((p) => !p.Type?.startsWith("Wormhole "))
+        ?? this.parsePilots(lines);
 
       // use Entries if available
       const wh = message.Entries?.find((p) => p.Type?.startsWith("Wormhole "));
       if (wh) {
         wormholeClass = wh.Type?.split(" ")[1] ?? "";
-      } else {
+      }
+      else {
         // otherwise parse the lines to find the wormhole
         const wormhole = lines.find((line) => line.startsWith("Wormhole "));
         wormholeClass = wormhole?.split(" ")[1] ?? "";
@@ -93,9 +96,11 @@ export class MessageParser {
     for (const line of lines) {
       if (line.length == 0 || line == "Nothing Found") {
         // do nothing
-      } else if (line.startsWith("Wormhole ")) {
+      }
+      else if (line.startsWith("Wormhole ")) {
         // this line is the wormhole so skip it
-      } else {
+      }
+      else {
         // PILOT SHIP [CORP] [ALLIANCE]
         const words = line.split(" ");
 
@@ -122,7 +127,8 @@ export class MessageParser {
 
             if (shipNameLength === -1) {
               shipName = line;
-            } else {
+            }
+            else {
               // ship is the first shipNameLength words
               shipName = words.slice(0, shipNameLength).join(" ");
 

@@ -26,15 +26,20 @@ function timeAgo(date: Date) {
   const years = Math.floor(months / 12);
   if (years > 0) {
     return `${years} year${years === 1 ? "" : "s"} ago`;
-  } else if (months > 0) {
+  }
+  else if (months > 0) {
     return `${months} month${months === 1 ? "" : "s"} ago`;
-  } else if (days > 0) {
+  }
+  else if (days > 0) {
     return `${days} day${days === 1 ? "" : "s"} ago`;
-  } else if (hours > 0) {
+  }
+  else if (hours > 0) {
     return `${hours} hour${hours === 1 ? "" : "s"} ago`;
-  } else if (minutes > 0) {
+  }
+  else if (minutes > 0) {
     return `${minutes} minute${minutes === 1 ? "" : "s"} ago`;
-  } else {
+  }
+  else {
     return `${seconds} second${seconds === 1 ? "" : "s"} ago`;
   }
 }
@@ -54,7 +59,8 @@ export class Server {
       const start = Date.now();
       try {
         await next();
-      } catch (err) {
+      }
+      catch (err) {
         console.error(`Koa: ${ctx.method} ${ctx.url} - Error: `, err);
         ctx.status = 500;
         ctx.body =
@@ -71,58 +77,82 @@ export class Server {
     this.app.use(
       mount(
         "/install",
-        serve(path.join(__dirname, "../install"), {
-          setHeaders: (res, filePath) => {
-            if (filePath.endsWith(".application")) {
-              res.setHeader("Content-Type", "application/x-ms-application");
-            } else if (filePath.endsWith(".manifest")) {
-              res.setHeader("Content-Type", "application/x-ms-manifest");
-            } else if (filePath.endsWith(".deploy")) {
-              res.setHeader("Content-Type", "application/octet-stream");
-            }
+        serve(
+          path.join(__dirname, "../install"),
+          {
+            setHeaders: (res, filePath) => {
+              if (filePath.endsWith(".application")) {
+                res.setHeader("Content-Type", "application/x-ms-application");
+              }
+              else if (filePath.endsWith(".manifest")) {
+                res.setHeader("Content-Type", "application/x-ms-manifest");
+              }
+              else if (filePath.endsWith(".deploy")) {
+                res.setHeader("Content-Type", "application/octet-stream");
+              }
+            },
           },
-        }),
+        ),
       ),
     );
 
     // Set up view rendering
     this.app.use(
-      views(path.join(__dirname, "../views"), {
-        extension: "ejs",
-      }),
+      views(
+        path.join(__dirname, "../views"),
+        {
+          extension: "ejs",
+        },
+      ),
     );
 
     this.app.use(this.router.routes()).use(this.router.allowedMethods());
 
-    this.router.get("/", async (ctx) => {
-      // Use the already initialized grid instance
-      const sightings = [...this.grid.seenSoFar().slice(-300)];
-      sightings.reverse();
-      await ctx.render("index", {
-        sightings,
-        fix_path,
-        liveScouts: Array.from(this.grid.getScoutReports().values()),
-        timeAgo,
-      });
-    });
+    this.router.get(
+      "/",
+      async (ctx) => {
+        // Use the already initialized grid instance
+        const sightings = [...this.grid.seenSoFar().slice(-300)];
+        sightings.reverse();
+        await ctx.render(
+          "index",
+          {
+            sightings,
+            fix_path,
+            liveScouts: Array.from(this.grid.getScoutReports().values()),
+            timeAgo,
+          },
+        );
+      },
+    );
 
-    this.router.get("/install", async (ctx) => {
-      ctx.redirect("./install/Publish.html");
-    });
+    this.router.get(
+      "/install",
+      async (ctx) => {
+        ctx.redirect("./install/Publish.html");
+      },
+    );
 
-    this.router.get("/errors", async (ctx) => {
-      try {
-        const errors = await Data.getInstance().getErrorLogs(100); // Get 100 most recent errors
-        await ctx.render("errors", { errors });
-      } catch (error) {
-        console.error("Failed to load error logs:", error);
-        ctx.status = 500;
-        await ctx.render("error", {
-          message: "Failed to load error logs",
-          error: error instanceof Error ? error.message : "Unknown error",
-        });
-      }
-    });
+    this.router.get(
+      "/errors",
+      async (ctx) => {
+        try {
+          const errors = await Data.getInstance().getErrorLogs(100); // Get 100 most recent errors
+          await ctx.render("errors", { errors });
+        }
+        catch (error) {
+          console.error("Failed to load error logs:", error);
+          ctx.status = 500;
+          await ctx.render(
+            "error",
+            {
+              message: "Failed to load error logs",
+              error: error instanceof Error ? error.message : "Unknown error",
+            },
+          );
+        }
+      },
+    );
 
     this.router.post(
       ["/", "/api/report"],
@@ -136,22 +166,26 @@ export class Server {
       },
     );
 
-    this.router.delete("/key/:key", async (ctx) => {
-      console.log("Deleting key", ctx.params.key);
-      const key = querystring.unescape(ctx.params.key);
-      if (key) {
-        // Use the already initialized grid instance
-        const success = await this.grid.delete(key);
+    this.router.delete(
+      "/key/:key",
+      async (ctx) => {
+        console.log("Deleting key", ctx.params.key);
+        const key = querystring.unescape(ctx.params.key);
+        if (key) {
+          // Use the already initialized grid instance
+          const success = await this.grid.delete(key);
 
-        if (success) {
-          ctx.status = 200;
-          ctx.body = "";
-        } else {
-          ctx.status = 404;
-          ctx.body = "Key Not found";
+          if (success) {
+            ctx.status = 200;
+            ctx.body = "";
+          }
+          else {
+            ctx.status = 404;
+            ctx.body = "Key Not found";
+          }
         }
-      }
-    });
+      },
+    );
 
     this.router.post(
       "/api/error",
@@ -171,19 +205,23 @@ export class Server {
           // Log the error to persistent storage
           const errorId = await Data.getInstance().logError(errorData, context);
 
-          console.error("Client Error Report:", {
-            id: errorId,
-            timestamp: new Date().toISOString(),
-            ...context,
-            error: errorData,
-          });
+          console.error(
+            "Client Error Report:",
+            {
+              id: errorId,
+              timestamp: new Date().toISOString(),
+              ...context,
+              error: errorData,
+            },
+          );
 
           ctx.status = 200;
           ctx.body = {
             status: "error_received",
             errorId,
           };
-        } catch (error) {
+        }
+        catch (error) {
           console.error("Error processing error report:", error);
 
           // Try to log the error about error reporting failing
@@ -199,7 +237,8 @@ export class Server {
                 method: ctx.method,
               },
             );
-          } catch (logError) {
+          }
+          catch (logError) {
             console.error("Failed to log error processing error:", logError);
           }
 
@@ -212,25 +251,31 @@ export class Server {
       },
     );
 
-    this.router.post("/api/errors/clear", async (ctx) => {
-      try {
-        const success = await Data.getInstance().clearErrorLogs();
-        if (success) {
-          ctx.status = 200;
-          ctx.body = { status: "success" };
-        } else {
+    this.router.post(
+      "/api/errors/clear",
+      async (ctx) => {
+        try {
+          const success = await Data.getInstance().clearErrorLogs();
+          if (success) {
+            ctx.status = 200;
+            ctx.body = { status: "success" };
+          }
+          else {
+            ctx.status = 500;
+            ctx.body = { error: "Failed to clear error logs" };
+          }
+        }
+        catch (error) {
+          console.error("Failed to clear error logs:", error);
           ctx.status = 500;
           ctx.body = { error: "Failed to clear error logs" };
         }
-      } catch (error) {
-        console.error("Failed to clear error logs:", error);
-        ctx.status = 500;
-        ctx.body = { error: "Failed to clear error logs" };
-      }
-    });
+      },
+    );
 
-    this.app.listen(koa_port, () =>
-      console.log(`Listening on http://localhost:${koa_port}`),
+    this.app.listen(
+      koa_port,
+      () => console.log(`Listening on http://localhost:${koa_port}`),
     );
   }
 }

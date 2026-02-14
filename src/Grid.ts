@@ -36,12 +36,13 @@ export class Grid {
     const temp = await Data.getInstance().getData("seenInHoth");
     if (temp === undefined) {
       Grid.seenInHoth = [];
-    } else {
+    }
+    else {
       // if it is an array of strings
       if (
-        Array.isArray(temp) &&
-        temp.length > 0 &&
-        typeof temp[0] === "string"
+        Array.isArray(temp)
+        && temp.length > 0
+        && typeof temp[0] === "string"
       ) {
         // upgrade the old format
         Grid.seenInHoth = temp.map((k: string) => {
@@ -60,7 +61,8 @@ export class Grid {
             system: "",
           };
         });
-      } else {
+      }
+      else {
         Grid.seenInHoth = temp;
       }
       Grid.seenInHoth.forEach((k) => {
@@ -87,10 +89,12 @@ export class Grid {
   public getScoutReports() {
     // remove any reports older than 5 minutes
     const now = Date.now();
-    const oldKeys = Array.from(Grid.scoutReports.keys()).filter(
-      (key) =>
-        now - Grid.scoutReports.get(key)!.lastSeen.getTime() > 5 * 60 * 1000,
-    );
+    const oldKeys = Array
+      .from(Grid.scoutReports.keys())
+      .filter(
+        (key) =>
+          now - Grid.scoutReports.get(key)!.lastSeen.getTime() > 5 * 60 * 1000,
+      );
     for (const key of oldKeys) {
       Grid.scoutReports.delete(key);
     }
@@ -118,9 +122,11 @@ export class Grid {
     // update the entry
     if (scout.Disconnected) {
       entry.wormhole = "Lost Connection";
-    } else if (scout.Wormhole.length > 0) {
+    }
+    else if (scout.Wormhole.length > 0) {
       entry.wormhole = scout.Wormhole;
-    } else {
+    }
+    else {
       entry.wormhole = "No Wormhole";
     }
 
@@ -180,7 +186,8 @@ export class Grid {
         scoutDiscordId: "",
         system,
       });
-    } else {
+    }
+    else {
       // seen this pilot at this location most recently
       recentSighting.lastSeenOnGrid = Date.now();
       // move it to the end of the list

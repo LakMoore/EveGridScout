@@ -15,7 +15,7 @@ export class Data {
   private static instance: Data;
   private static ERROR_LOGS: ErrorLogEntry[];
   private static readonly MAX_ERROR_LOGS = 1000; // Maximum number of error logs to keep
-  private static readonly ERROR_LOG_KEY = 'error_logs';
+  private static readonly ERROR_LOG_KEY = "error_logs";
 
   public static getInstance() {
     if (!this.instance) {
@@ -24,7 +24,7 @@ export class Data {
     return this.instance;
   }
 
-  private constructor() { }
+  private constructor() {}
 
   public async initialise() {
     await storage.init();
@@ -44,18 +44,21 @@ export class Data {
   /**
    * Logs an error with additional context
    */
-  public async logError(error: any, context: {
-    ip?: string;
-    userAgent?: string;
-    path?: string;
-    method?: string;
-  } = {}) {
+  public async logError(
+    error: any,
+    context: {
+      ip?: string;
+      userAgent?: string;
+      path?: string;
+      method?: string;
+    } = {},
+  ) {
     try {
       const errorEntry: ErrorLogEntry = {
         id: Date.now().toString(36) + Math.random().toString(36).substr(2),
         timestamp: new Date().toISOString(),
         error,
-        ...context
+        ...context,
       };
 
       Data.ERROR_LOGS.unshift(errorEntry);
@@ -67,8 +70,9 @@ export class Data {
 
       await storage.setItem(Data.ERROR_LOG_KEY, Data.ERROR_LOGS);
       return errorEntry.id;
-    } catch (error) {
-      console.error('Failed to log error:', error);
+    }
+    catch (error) {
+      console.error("Failed to log error:", error);
       return null;
     }
   }
@@ -76,18 +80,25 @@ export class Data {
   /**
    * Retrieves paginated error logs
    */
-  public async getErrorLogs(limit: number = 100, offset: number = 0): Promise<ErrorLogEntry[]> {
+  public async getErrorLogs(
+    limit: number = 100,
+    offset: number = 0,
+  ): Promise<ErrorLogEntry[]> {
     try {
       if (!Data.ERROR_LOGS) {
-        Data.ERROR_LOGS = await storage.getItem(Data.ERROR_LOG_KEY) as ErrorLogEntry[];
+        Data.ERROR_LOGS = (await storage.getItem(
+          Data.ERROR_LOG_KEY,
+        )) as ErrorLogEntry[];
       }
       if (!Array.isArray(Data.ERROR_LOGS)) {
         await this.clearErrorLogs();
-      } else {
+      }
+      else {
         return Data.ERROR_LOGS.slice(offset, offset + limit);
       }
-    } catch (error) {
-      console.error('Failed to get error logs:', error);
+    }
+    catch (error) {
+      console.error("Failed to get error logs:", error);
     }
     return [];
   }
@@ -98,9 +109,10 @@ export class Data {
   public async getErrorLog(id: string): Promise<ErrorLogEntry | null> {
     try {
       const logs = await this.getErrorLogs(Data.MAX_ERROR_LOGS);
-      return logs.find(log => log.id === id) || null;
-    } catch (error) {
-      console.error('Failed to get error log:', error);
+      return logs.find((log) => log.id === id) || null;
+    }
+    catch (error) {
+      console.error("Failed to get error log:", error);
       return null;
     }
   }
@@ -113,8 +125,9 @@ export class Data {
       Data.ERROR_LOGS = [];
       await storage.setItem(Data.ERROR_LOG_KEY, Data.ERROR_LOGS);
       return true;
-    } catch (error) {
-      console.error('Failed to clear error logs:', error);
+    }
+    catch (error) {
+      console.error("Failed to clear error logs:", error);
       return false;
     }
   }

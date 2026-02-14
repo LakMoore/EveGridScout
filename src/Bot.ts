@@ -35,7 +35,8 @@ async function main() {
 
 try {
   await main();
-} catch (e) {
+}
+catch (e) {
   console.error("Error starting bot:", e);
   process.exit(1);
 }
