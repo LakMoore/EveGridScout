@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diagnostics - GridScout</title>
+    <style>
+        :root {
+            color-scheme: dark;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            background: radial-gradient(circle at top, #1f2937 0%, #111827 50%, #0b1020 100%);
+            color: #e5e7eb;
+            padding: 24px;
+        }
+
+        .card {
+            background: rgba(17, 24, 39, 0.93);
+            border: 1px solid #374151;
+            border-radius: 14px;
+            box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
+            padding: 20px;
+            margin-bottom: 18px;
+        }
+
+        h1 {
+            margin: 0 0 12px;
+            color: #f9fafb;
+        }
+
+        .actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 8px;
+            margin-bottom: 12px;
+        }
+
+        .button {
+            display: inline-block;
+            text-decoration: none;
+            border-radius: 10px;
+            padding: 10px 14px;
+            font-weight: 600;
+            border: 1px solid #4b5563;
+            background: rgba(55, 65, 81, 0.9);
+            color: #e5e7eb;
+            cursor: pointer;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            border-bottom: 1px solid #374151;
+            padding: 10px 8px;
+            text-align: left;
+            vertical-align: top;
+            font-size: 0.92rem;
+        }
+
+        th {
+            color: #9ca3af;
+            font-weight: 600;
+            background: rgba(31, 41, 55, 0.75);
+        }
+
+        tr:hover td {
+            background: rgba(55, 65, 81, 0.25);
+        }
+
+        .mono {
+            font-family: Consolas, "Courier New", monospace;
+            white-space: pre-wrap;
+            word-break: break-word;
+            color: #d1d5db;
+        }
+
+        .summary {
+            color: #d1d5db;
+            margin: 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="card">
+        <h1>Diagnostics</h1>
+        <p class="summary">Recent audit log entries: <strong><%= auditLogs.length %></strong> | Recent error entries: <strong><%= errorCount %></strong></p>
+        <div class="actions">
+            <a class="button" href="<%= fix_path('/') %>">Back to Dashboard</a>
+            <button class="button" onclick="clearAuditLogs()">Clear Audit Logs</button>
+        </div>
+    </div>
+
+    <div class="card">
+        <table>
+            <thead>
+                <tr>
+                    <th>Timestamp</th>
+                    <th>Category</th>
+                    <th>Action</th>
+                    <th>Outcome</th>
+                    <th>Actor</th>
+                    <th>Guild</th>
+                    <th>Details</th>
+                </tr>
+            </thead>
+            <tbody>
+                <% if (!auditLogs.length) { %>
+                    <tr>
+                        <td colspan="7">No audit entries yet.</td>
+                    </tr>
+                <% } else { %>
+                    <% auditLogs.forEach((entry) => { %>
+                        <tr>
+                            <td><%= new Date(entry.timestamp).toLocaleString() %></td>
+                            <td><%= entry.category %></td>
+                            <td><%= entry.action %></td>
+                            <td><%= entry.outcome %></td>
+                            <td><%= entry.actorId || "-" %></td>
+                            <td><%= entry.guildId || "-" %></td>
+                            <td class="mono"><%= entry.details ? JSON.stringify(entry.details, null, 2) : "-" %></td>
+                        </tr>
+                    <% }) %>
+                <% } %>
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        async function clearAuditLogs() {
+            if (!confirm("Clear all audit logs?")) {
+                return;
+            }
+
+            const response = await fetch("<%= fix_path('/api/diagnostics/audit/clear') %>", {
+                method: "POST"
+            });
+
+            if (!response.ok) {
+                alert("Failed to clear audit logs.");
+                return;
+            }
+
+            window.location.reload();
+        }
+    </script>
+</body>
+
+</html>

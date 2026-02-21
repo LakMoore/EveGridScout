@@ -4,11 +4,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GridScout</title>
+    <title>GridScout Scout Dashboard</title>
     <script src="https://unpkg.com/htmx.org@1.9.5"></script>
-    <!-- Google Material Icons -->
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-    <!-- MDC Web CSS -->
     <link rel="stylesheet" href="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.css">
     <style>
         :root {
@@ -97,25 +95,28 @@
             text-overflow: clip !important;
             white-space: nowrap !important;
         }
-
     </style>
 </head>
 
 <body>
     <div class="header-actions">
-        <a href="errors" class="mdc-button mdc-button--raised">
+        <a href="<%= fix_path('/') %>" class="mdc-button mdc-button--raised">
+            <i class="material-icons mdc-button__icon" aria-hidden="true">dashboard</i>
+            <span class="mdc-button__label">Dashboards</span>
+        </a>
+        <a href="<%= fix_path('/errors') %>" class="mdc-button mdc-button--raised">
             <i class="material-icons mdc-button__icon" aria-hidden="true">error</i>
             <span class="mdc-button__label">Error Logs</span>
         </a>
-        <a href="install" class="mdc-button mdc-button--raised">
+        <a href="<%= fix_path('/install') %>" class="mdc-button mdc-button--raised">
             <i class="material-icons mdc-button__icon" aria-hidden="true">install_mobile</i>
             <span class="mdc-button__label">Install Client</span>
         </a>
     </div>
+
     <%- include("partials/live-scouts-card", { liveScouts, timeAgo }) %>
     <%- include("partials/sightings-card", { sightings, fix_path, singleSystemName, timeAgo }) %>
-    <%- include("partials/local-reports-card", { localReports, nullSecPocketName, timeAgo }) %>
-    <!-- MDC Web JS -->
+
     <script src="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.js"></script>
     <script>
         mdc.autoInit();
@@ -139,16 +140,12 @@
 
                 refreshInFlight = true;
                 Promise.all([
-                    htmx.ajax("GET", "<%= fix_path('/fragments/live-scouts') %>", {
+                    htmx.ajax("GET", "<%= fix_path('/fragments/scout/live-scouts') %>", {
                         target: "#live-scouts-card",
                         swap: "outerHTML"
                     }),
-                    htmx.ajax("GET", "<%= fix_path('/fragments/sightings') %>", {
+                    htmx.ajax("GET", "<%= fix_path('/fragments/scout/sightings') %>", {
                         target: "#sightings-card",
-                        swap: "outerHTML"
-                    }),
-                    htmx.ajax("GET", "<%= fix_path('/fragments/local-reports') %>", {
-                        target: "#local-reports-card",
                         swap: "outerHTML"
                     })
                 ]).finally(function () {
@@ -175,8 +172,12 @@
                 scheduleDashboardRefresh();
             });
 
+            eventSource.onmessage = function () {
+                scheduleDashboardRefresh();
+            };
+
             eventSource.onerror = function () {
-                eventSource.close();
+                // Allow the browser EventSource auto-reconnect behavior.
             };
         })();
     </script>

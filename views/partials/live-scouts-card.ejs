@@ -1,0 +1,27 @@
+<div class="page-card" id="live-scouts-card">
+    <h1>Current scouts:</h1>
+    <div class="mdc-data-table" data-mdc-auto-init="MDCDataTable">
+        <table class="mdc-data-table__table" aria-label="Live Scouts Table">
+            <thead>
+                <tr class="mdc-data-table__header-row">
+                    <th class="mdc-data-table__header-cell" role="columnheader" scope="col">Scout</th>
+                    <th class="mdc-data-table__header-cell" role="columnheader" scope="col">System</th>
+                    <th class="mdc-data-table__header-cell" role="columnheader" scope="col">Wormhole</th>
+                    <th class="mdc-data-table__header-cell" role="columnheader" scope="col">Version</th>
+                    <th class="mdc-data-table__header-cell" role="columnheader" scope="col">Last Seen</th>
+                </tr>
+            </thead>
+            <tbody class="mdc-data-table__content">
+                <% liveScouts.forEach((scout)=> { %>
+                    <tr class="mdc-data-table__row">
+                        <td class="mdc-data-table__cell"><%= scout.name %></td>
+                        <td class="mdc-data-table__cell"><%= scout.system %></td>
+                        <td class="mdc-data-table__cell"><%= scout.wormhole %></td>
+                        <td class="mdc-data-table__cell"><%= scout.version %></td>
+                        <td class="mdc-data-table__cell"><%= timeAgo(scout.lastSeen) %></td>
+                    </tr>
+                <% }); %>
+            </tbody>
+        </table>
+    </div>
+</div>

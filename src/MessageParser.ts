@@ -1,12 +1,19 @@
 import { Grid } from "./Grid.js";
+import { NotificationService } from "./NotificationService.js";
 import { ScoutEntry } from "./ScoutEntry.js";
 import { ScoutMessage } from "./ScoutMessage.js";
+
+export interface ParseResult {
+  accepted: boolean;
+  reason?: string;
+}
 
 export class MessageParser {
   // singleton
   private static instance: MessageParser;
 
-  private headerWords = ["Type", "Corporation", "Alliance", "Name"];
+  private readonly headerWords = ["Type", "Corporation", "Alliance", "Name"];
+  private notificationService?: NotificationService;
 
   public static getInstance(): MessageParser {
     if (!MessageParser.instance) {
@@ -15,27 +22,46 @@ export class MessageParser {
     return MessageParser.instance;
   }
 
-  public async parse(body: string) {
+  public setNotificationService(notificationService: NotificationService) {
+    this.notificationService = notificationService;
+  }
+
+  public async parse(body: string, guildId: string): Promise<ParseResult> {
     // if message is a json object, cast it to a ScoutMessage
     let message: ScoutMessage;
     try {
       message = JSON.parse(body) as ScoutMessage;
-    }
-    catch (e) {
+    } catch (e) {
       console.log(e);
       message = {
         Message: body,
         Scout: "unknown",
+        ReporterDiscordUserId: "",
         Wormhole: "unknown",
+        System: "unknown",
+        Entries: [],
+        Disconnected: false,
+        Version: "unknown",
       } as ScoutMessage;
     }
+
+    const reporterDiscordUserId = message.ReporterDiscordUserId?.trim() ?? "";
+    if (!this.isValidDiscordUserId(reporterDiscordUserId)) {
+      return {
+        accepted: false,
+        reason:
+          "Missing or invalid ReporterDiscordUserId after token authentication",
+      };
+    }
+
+    message.ReporterDiscordUserId = reporterDiscordUserId;
 
     console.log(message);
 
     const grid = await Grid.getInstance();
 
     // record the ping for this scout
-    grid.scoutReport(message);
+    grid.scoutReport(guildId, message);
 
     const lines = message.Message.split("\n");
     let wormholeClass = "";
@@ -45,19 +71,29 @@ export class MessageParser {
       console.log(
         `Activation detected by ${message.Scout} on ${message.Wormhole}`,
       );
-      grid.activation(message.Scout, message.Wormhole, message.System ?? "");
-    }
-    else {
+      await grid.activation(
+        guildId,
+        message.Scout,
+        message.Wormhole,
+        message.System ?? "",
+        message.ReporterDiscordUserId,
+      );
+
+      await this.notificationService?.processParsedReport({
+        guildId,
+        message,
+        pilots: [],
+      });
+    } else {
       const pilots: ScoutEntry[] =
-        message.Entries?.filter((p) => !p.Type?.startsWith("Wormhole "))
-        ?? this.parsePilots(lines);
+        message.Entries?.filter((p) => !p.Type?.startsWith("Wormhole ")) ??
+        this.parsePilots(lines);
 
       // use Entries if available
       const wh = message.Entries?.find((p) => p.Type?.startsWith("Wormhole "));
       if (wh) {
         wormholeClass = wh.Type?.split(" ")[1] ?? "";
-      }
-      else {
+      } else {
         // otherwise parse the lines to find the wormhole
         const wormhole = lines.find((line) => line.startsWith("Wormhole "));
         wormholeClass = wormhole?.split(" ")[1] ?? "";
@@ -68,20 +104,34 @@ export class MessageParser {
 
       // no longer want to just scout wormholes
       if (pilots.length > 0) {
-        return Promise.all(
+        await Promise.all(
           pilots.map((pilot) => {
             console.log(pilot);
-            grid.seenOnGrid(
+            return grid.seenOnGrid(
+              guildId,
               pilot,
               wormholeClass,
               message.Scout,
+              message.ReporterDiscordUserId ?? "",
               message.Wormhole,
               message.System ?? "",
             );
           }),
         );
+
+        await this.notificationService?.processParsedReport({
+          guildId,
+          message,
+          pilots,
+        });
       }
     }
+
+    return { accepted: true };
+  }
+
+  private isValidDiscordUserId(discordUserId: string) {
+    return /^\d{17,20}$/.test(discordUserId);
   }
 
   /**
@@ -96,11 +146,9 @@ export class MessageParser {
     for (const line of lines) {
       if (line.length == 0 || line == "Nothing Found") {
         // do nothing
-      }
-      else if (line.startsWith("Wormhole ")) {
+      } else if (line.startsWith("Wormhole ")) {
         // this line is the wormhole so skip it
-      }
-      else {
+      } else {
         // PILOT SHIP [CORP] [ALLIANCE]
         const words = line.split(" ");
 
@@ -127,8 +175,7 @@ export class MessageParser {
 
             if (shipNameLength === -1) {
               shipName = line;
-            }
-            else {
+            } else {
               // ship is the first shipNameLength words
               shipName = words.slice(0, shipNameLength).join(" ");
 

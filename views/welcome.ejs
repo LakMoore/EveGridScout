@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to GridScout</title>
+    <style>
+        :root {
+            color-scheme: dark;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            background: radial-gradient(circle at top, #1f2937 0%, #111827 50%, #0b1020 100%);
+            color: #e5e7eb;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+
+        .card {
+            width: 100%;
+            max-width: 820px;
+            background: rgba(17, 24, 39, 0.92);
+            border: 1px solid #374151;
+            border-radius: 14px;
+            padding: 34px;
+            box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
+        }
+
+        h1 {
+            margin: 0;
+            color: #f9fafb;
+            font-size: 2rem;
+        }
+
+        p {
+            color: #d1d5db;
+            line-height: 1.6;
+            margin: 14px 0;
+        }
+
+        ul {
+            margin: 16px 0 24px 18px;
+            color: #d1d5db;
+            line-height: 1.7;
+        }
+
+        .actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 24px;
+        }
+
+        .button {
+            display: inline-block;
+            text-decoration: none;
+            border-radius: 10px;
+            padding: 12px 20px;
+            font-weight: 600;
+            border: 1px solid transparent;
+            transition: transform 0.15s ease, opacity 0.15s ease;
+        }
+
+        .button:hover {
+            transform: translateY(-1px);
+            opacity: 0.95;
+        }
+
+        .button-primary {
+            background: #5865f2;
+            border-color: #5865f2;
+            color: #ffffff;
+        }
+
+        .button-secondary {
+            background: transparent;
+            border-color: #4b5563;
+            color: #e5e7eb;
+        }
+
+        .small {
+            margin-top: 18px;
+            font-size: 0.92rem;
+            color: #9ca3af;
+        }
+    </style>
+</head>
+
+<body>
+    <main class="card">
+        <h1>Welcome to GridScout</h1>
+        <p>
+            GridScout is the central log and visibility service for scout activity and sightings across your Discord
+            communities.
+            Scouts submit reports over HTTP from the GridScout client, and this service aggregates those into a shared,
+            searchable log.
+        </p>
+        <p>
+            Built for <strong>EVE Online</strong> operations, GridScout helps fleets and intel teams maintain awareness
+            of active scouts, local threats, and coverage status.
+        </p>
+        <ul>
+            <li>Collects scout pings, sightings, and activation signals in real time.</li>
+            <li>Associates reports with Discord identities for secure, role-based access.</li>
+            <li>Lets server admins control who can view operational logs via Discord roles.</li>
+        </ul>
+        <p>
+            To continue, sign in with Discord so GridScout can verify your server membership and permissions.
+        </p>
+
+        <div class="actions">
+            <a class="button button-primary" href="<%= fix_path('/auth/discord/login') %>">Login using Discord</a>
+            <a class="button button-secondary" href="<%= fix_path('/install') %>">Install Client</a>
+        </div>
+
+        <p class="small">Already signed in users with a configured viewer role will be taken directly to the live logs.</p>
+    </main>
+</body>
+
+</html>

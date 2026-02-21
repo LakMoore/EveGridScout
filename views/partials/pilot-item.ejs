@@ -1,0 +1,23 @@
+<%
+    const reporterNameList = typeof reporterNames !== "undefined"
+        ? reporterNames
+        : (typeof reporterName !== "undefined" ? [reporterName] : []);
+    const normalizedReporterNames = (Array.isArray(reporterNameList) ? reporterNameList : [reporterNameList])
+        .map((name) => String(name ?? "").trim().toLowerCase())
+        .filter((name) => !!name);
+    const isReportingCharacter = normalizedReporterNames.includes(String(pilot.name ?? "").trim().toLowerCase());
+    const pilotBackgroundColor = isReportingCharacter ? "#16a34a" : pilot.backgroundColor;
+%>
+<div
+    style="<%= `padding: 2px 10px; border: 1px solid #374151; border-radius: 6px; background: ${pilotBackgroundColor}; color: #ffffff; white-space: nowrap; display: flex; align-items: center; gap: 8px; min-height: 30px; box-sizing: border-box; width: 100%; max-width: 100%; min-width: 220px; overflow: hidden;` %>"
+    title="<%= pilot.hint || 'Pilot has no standing' %>">
+    <% if (pilot.characterId && Number(pilot.characterId) > 0) { %>
+        <img
+            src="https://images.evetech.net/characters/<%= pilot.characterId %>/portrait?size=128"
+            alt="<%= pilot.name %> portrait"
+            width="24"
+            height="24"
+            style="width: 24px; height: 24px; border-radius: 4px; flex: 0 0 24px;" />
+    <% } %>
+    <span style="display: block; flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"><%= pilot.name %></span>
+</div>

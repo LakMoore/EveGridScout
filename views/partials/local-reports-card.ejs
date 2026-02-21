@@ -1,0 +1,109 @@
+<div class="page-card" id="local-reports-card">
+    <h1>Local reports in <%= nullSecPocketName %>:</h1>
+    <div class="mdc-data-table" data-mdc-auto-init="MDCDataTable">
+        <table class="mdc-data-table__table" aria-label="Local Reports Table">
+            <thead>
+                <tr class="mdc-data-table__header-row">
+                    <th class="mdc-data-table__header-cell" role="columnheader" scope="col" style="width: 46px; text-align: center;">&nbsp;</th>
+                    <th class="mdc-data-table__header-cell" role="columnheader" scope="col">System</th>
+                    <th class="mdc-data-table__header-cell" role="columnheader" scope="col" style="width: 90px; text-align: center;">Delta</th>
+                    <th class="mdc-data-table__header-cell" role="columnheader" scope="col" style="width: 320px;">Current Locals</th>
+                    <th class="mdc-data-table__header-cell" role="columnheader" scope="col">Latest Update</th>
+                    <th class="mdc-data-table__header-cell" role="columnheader" scope="col">Latest Reporter</th>
+                </tr>
+            </thead>
+            <tbody class="mdc-data-table__content">
+                <% localReports.forEach((report, reportIndex) => { %>
+                    <tr class="mdc-data-table__row">
+                        <td class="mdc-data-table__cell" style="width: 46px; text-align: center;">
+                            <button
+                                type="button"
+                                aria-label="Toggle history for <%= report.system %>"
+                                aria-expanded="false"
+                                title="Show or hide history"
+                                style="background: transparent; color: #d1d5db; border: none; cursor: pointer; font-size: 14px; line-height: 1; padding: 0 4px;"
+                                onclick="(function(button,rowId){var row=document.getElementById(rowId);if(!row){return;}var isExpanded=row.style.display==='table-row';row.style.display=isExpanded?'none':'table-row';button.setAttribute('aria-expanded',isExpanded?'false':'true');button.textContent=isExpanded?'▸':'▾';})(this,'local-history-<%= reportIndex %>');">▸</button>
+                        </td>
+                        <td class="mdc-data-table__cell wrap-cell"><%= report.system %></td>
+                        <td class="mdc-data-table__cell" style="width: 90px; text-align: center; white-space: nowrap;">
+                            <% if (report.delta.added === 0 && report.delta.removed === 0) { %>
+                                0
+                            <% } else { %>
+                                <% if (report.delta.added > 0) { %>
+                                    +<%= report.delta.added %>
+                                <% } %>
+                                <% if (report.delta.added > 0 && report.delta.removed > 0) { %>
+                                    /
+                                <% } %>
+                                <% if (report.delta.removed > 0) { %>
+                                    -<%= report.delta.removed %>
+                                <% } %>
+                            <% } %>
+                        </td>
+                        <td class="mdc-data-table__cell" style="width: 320px;">
+                            <div style="display: flex; flex-direction: column; gap: 2px; padding: 6px 0;">
+                                <% report.currentLocals.forEach((pilot) => { %>
+                                    <%- include("pilot-item", { pilot, reporterName: report.latestReporter }) %>
+                                <% }) %>
+                            </div>
+                        </td>
+                        <td class="mdc-data-table__cell" title="<%= new Date(report.latestTime).toUTCString().replace('GMT', 'EVE') %>">
+                            <div style="white-space:nowrap;"><%= timeAgo(new Date(report.latestTime)) %></div>
+                        </td>
+                        <td class="mdc-data-table__cell wrap-cell"><%= report.latestReporter %></td>
+                    </tr>
+                    <tr class="mdc-data-table__row" id="local-history-<%= reportIndex %>" style="display: none;">
+                        <td class="mdc-data-table__cell" colspan="6" style="padding-top: 0;">
+                            <div style="margin: 8px 0 4px 0; display: grid; gap: 8px;">
+                                <% report.history.forEach((entry) => { %>
+                                    <div style="border: 1px solid #374151; border-radius: 8px; padding: 8px;">
+                                        <div style="display: grid; grid-template-columns: minmax(260px, 1.2fr) minmax(220px, 1fr) minmax(220px, 1fr); gap: 12px; align-items: start;">
+                                            <div>
+                                                <div style="font-weight: 600; margin-bottom: 4px;">
+                                                    <%= new Date(entry.minuteStart).toUTCString().replace('GMT', 'EVE') %>
+                                                </div>
+                                                <div style="color: #9ca3af; margin-bottom: 6px;">
+                                                    <%= timeAgo(new Date(entry.latestTime)) %>
+                                                </div>
+                                                <div>
+                                                    <%= entry.reportCount %> report<%= entry.reportCount === 1 ? '' : 's' %>
+                                                </div>
+                                                <div style="margin-top: 4px;">Reporters: <%= entry.reporters.join(', ') || 'Unknown' %></div>
+                                            </div>
+
+                                            <div>
+                                                <div style="font-weight: 600; margin-bottom: 4px;">Added</div>
+                                                <% if (entry.addedPilots.length === 0) { %>
+                                                    <div>None</div>
+                                                <% } else { %>
+                                                    <div style="display: flex; flex-direction: column; gap: 2px; padding: 2px 0;">
+                                                        <% entry.addedPilots.forEach((pilot) => { %>
+                                                            <%- include("pilot-item", { pilot, reporterNames: entry.reporters }) %>
+                                                        <% }) %>
+                                                    </div>
+                                                <% } %>
+                                            </div>
+
+                                            <div>
+                                                <div style="font-weight: 600; margin-bottom: 4px;">Removed</div>
+                                                <% if (entry.removedPilots.length === 0) { %>
+                                                    <div>None</div>
+                                                <% } else { %>
+                                                    <div style="display: flex; flex-direction: column; gap: 2px; padding: 2px 0;">
+                                                        <% entry.removedPilots.forEach((pilot) => { %>
+                                                            <%- include("pilot-item", { pilot, reporterNames: entry.reporters }) %>
+                                                        <% }) %>
+                                                    </div>
+                                                <% } %>
+                                            </div>
+                                        </div>
+                                    </div>
+                                <% }); %>
+                            </div>
+                        </td>
+                    </tr>
+                <% }); %>
+            </tbody>
+        </table>
+    </div>
+</div>

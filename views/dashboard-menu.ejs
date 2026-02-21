@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GridScout Dashboards</title>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.css">
+    <style>
+        :root {
+            color-scheme: dark;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            background: radial-gradient(circle at top, #1f2937 0%, #111827 50%, #0b1020 100%);
+            color: #e5e7eb;
+            padding: 24px;
+        }
+
+        .page-card {
+            max-width: 720px;
+            margin: 40px auto;
+            background: rgba(17, 24, 39, 0.93);
+            border: 1px solid #374151;
+            border-radius: 14px;
+            box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
+            padding: 24px;
+        }
+
+        .dashboard-links {
+            display: grid;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .mdc-button {
+            justify-content: flex-start;
+            text-transform: none;
+            background: rgba(55, 65, 81, 0.9) !important;
+            border-color: #4b5563 !important;
+            color: #e5e7eb !important;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="page-card">
+        <h1>Select Dashboard</h1>
+        <p>Choose the intel dashboard you want to view.</p>
+
+        <div class="dashboard-links">
+            <a href="<%= fix_path('/dashboard/scout') %>" class="mdc-button mdc-button--raised">
+                <i class="material-icons mdc-button__icon" aria-hidden="true">travel_explore</i>
+                <span class="mdc-button__label">Scout Dashboard</span>
+            </a>
+            <a href="<%= fix_path('/dashboard/local') %>" class="mdc-button mdc-button--raised">
+                <i class="material-icons mdc-button__icon" aria-hidden="true">groups</i>
+                <span class="mdc-button__label">Local Reports Dashboard</span>
+            </a>
+        </div>
+
+        <div class="header-actions">
+            <a href="<%= fix_path('/admin/diagnostics') %>" class="mdc-button mdc-button--outlined">
+                <i class="material-icons mdc-button__icon" aria-hidden="true">analytics</i>
+                <span class="mdc-button__label">Diagnostics</span>
+            </a>
+            <a href="<%= fix_path('/errors') %>" class="mdc-button mdc-button--outlined">
+                <i class="material-icons mdc-button__icon" aria-hidden="true">error</i>
+                <span class="mdc-button__label">Error Logs</span>
+            </a>
+            <a href="<%= fix_path('/install') %>" class="mdc-button mdc-button--outlined">
+                <i class="material-icons mdc-button__icon" aria-hidden="true">install_mobile</i>
+                <span class="mdc-button__label">Install Client</span>
+            </a>
+            <a href="<%= fix_path('/logout') %>" class="mdc-button mdc-button--outlined">
+                <i class="material-icons mdc-button__icon" aria-hidden="true">logout</i>
+                <span class="mdc-button__label">Logout</span>
+            </a>
+        </div>
+    </div>
+</body>
+
+</html>

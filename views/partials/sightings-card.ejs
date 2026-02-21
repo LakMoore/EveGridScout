@@ -1,0 +1,45 @@
+<div class="page-card" id="sightings-card">
+    <h1>Seen in <%= singleSystemName %> so far:</h1>
+    <div class="mdc-data-table" data-mdc-auto-init="MDCDataTable">
+        <table class="mdc-data-table__table" aria-label="Sightings Table">
+            <thead>
+                <tr class="mdc-data-table__header-row">
+                    <th class="mdc-data-table__header-cell" role="columnheader" scope="col">Ship</th>
+                    <th class="mdc-data-table__header-cell" role="columnheader" scope="col">Character</th>
+                    <th class="mdc-data-table__header-cell" role="columnheader" scope="col">Alliance</th>
+                    <th class="mdc-data-table__header-cell" role="columnheader" scope="col">Corp</th>
+                    <th class="mdc-data-table__header-cell" role="columnheader" scope="col">Last Seen</th>
+                    <th class="mdc-data-table__header-cell" role="columnheader" scope="col">Wormhole</th>
+                    <th class="mdc-data-table__header-cell" role="columnheader" scope="col">First Seen</th>
+                    <th class="mdc-data-table__header-cell" role="columnheader" scope="col">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="mdc-data-table__content">
+                <% sightings.forEach(function(sighting, index) { %>
+                    <tr class="mdc-data-table__row" id="item-<%= index %>">
+                        <td class="mdc-data-table__cell wrap-cell"><%= sighting.ship %></td>
+                        <td class="mdc-data-table__cell wrap-cell"><%= sighting.name %></td>
+                        <td class="mdc-data-table__cell"><%= sighting.alliance %></td>
+                        <td class="mdc-data-table__cell"><%= sighting.corp %></td>
+                        <td class="mdc-data-table__cell" title="<%= new Date(sighting.lastSeenOnGrid).toUTCString().replace('GMT', 'EVE') %>">
+                            <div style="white-space:nowrap;"><%= timeAgo(new Date(sighting.lastSeenOnGrid)) %></div>
+                        </td>
+                        <td class="mdc-data-table__cell" title="<%= sighting.scoutName %>">
+                            <%= sighting.wormholeName %> (<%= sighting.system %>)
+                        </td>
+                        <td class="mdc-data-table__cell" title="<%= new Date(sighting.firstSeenOnGrid).toUTCString().replace('GMT', 'EVE') %>">
+                            <div style="white-space:nowrap;"><%= timeAgo(new Date(sighting.firstSeenOnGrid)) %></div>
+                        </td>
+                        <td class="mdc-data-table__cell">
+                            <button class="mdc-button mdc-button--outlined"
+                                hx-delete="<%= fix_path('/key/' + sighting.key) %>" hx-target="#item-<%= index %>"
+                                hx-swap="outerHTML">
+                                <span class="mdc-button__label">Delete</span>
+                            </button>
+                        </td>
+                    </tr>
+                <% }); %>
+            </tbody>
+        </table>
+    </div>
+</div>

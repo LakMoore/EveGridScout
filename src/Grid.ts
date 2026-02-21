@@ -1,4 +1,5 @@
 import { Data } from "./Data.js";
+import { LocalPilot, LocalReport } from "./LocalReport.js";
 import { PilotSighting } from "./PilotSighting.js";
 import { ScoutEntry } from "./ScoutEntry.js";
 import { ScoutMessage } from "./ScoutMessage.js";
@@ -16,8 +17,12 @@ export interface Scout {
 export class Grid {
   // singleton
   private static instance: Grid;
-  private static seenInHoth: Array<PilotSighting> = [];
-  private static scoutReports: Map<string, Scout> = new Map<string, Scout>();
+  private static readonly SCOUT_INTEL_STORE_KEY = "scout_intel_store_v2";
+  private static readonly LOCAL_REPORT_STORE_KEY = "local_report_store_v2";
+  private static readonly MAX_LOCAL_REPORTS = 5000;
+  private static sightingsByGuild: Record<string, PilotSighting[]> = {};
+  private static localReportsByGuild: Record<string, LocalReport[]> = {};
+  private static scoutReportsByGuild = new Map<string, Map<string, Scout>>();
 
   public static async getInstance(): Promise<Grid> {
     if (!Grid.instance) {
@@ -27,83 +32,97 @@ export class Grid {
     return Grid.instance;
   }
 
-  public async save() {
-    await Data.getInstance().saveData("seenInHoth", Grid.seenInHoth);
+  private async saveScoutIntel() {
+    await Data.getInstance().saveData(Grid.SCOUT_INTEL_STORE_KEY, {
+      sightingsByGuild: Grid.sightingsByGuild,
+    });
+  }
+
+  private async saveLocalReports() {
+    await Data.getInstance().saveData(Grid.LOCAL_REPORT_STORE_KEY, {
+      localReportsByGuild: Grid.localReportsByGuild,
+    });
   }
 
   public async load() {
-    console.log("Loading seen in Hoth...");
-    const temp = await Data.getInstance().getData("seenInHoth");
-    if (temp === undefined) {
-      Grid.seenInHoth = [];
+    console.log("Loading per-guild scout/local intel stores...");
+
+    const persistedScoutStore = await Data.getInstance().getData(
+      Grid.SCOUT_INTEL_STORE_KEY,
+    );
+    if (
+      persistedScoutStore &&
+      typeof persistedScoutStore === "object" &&
+      "sightingsByGuild" in persistedScoutStore
+    ) {
+      const persistedSightingsByGuild = (
+        persistedScoutStore as { sightingsByGuild?: unknown }
+      ).sightingsByGuild;
+      Grid.sightingsByGuild = this.normalizeSightingsByGuild(
+        persistedSightingsByGuild,
+      );
     }
-    else {
-      // if it is an array of strings
-      if (
-        Array.isArray(temp)
-        && temp.length > 0
-        && typeof temp[0] === "string"
-      ) {
-        // upgrade the old format
-        Grid.seenInHoth = temp.map((k: string) => {
-          return {
-            key: k,
-            name: k,
-            ship: "",
-            alliance: "",
-            corp: "",
-            wormhole: "",
-            firstSeenOnGrid: Date.now(),
-            lastSeenOnGrid: Date.now(),
-            wormholeName: "",
-            scoutName: "",
-            scoutDiscordId: "",
-            system: "",
-          };
-        });
-      }
-      else {
-        Grid.seenInHoth = temp;
-      }
-      Grid.seenInHoth.forEach((k) => {
-        // Hack to ensure we never have any slashes in our grid keys
-        k.key = k.key.replace("/", "");
-        // upgrade the old format
-        if (k.wormholeName === undefined) {
-          k.wormholeName = "";
+
+    const persistedLocalStore = await Data.getInstance().getData(
+      Grid.LOCAL_REPORT_STORE_KEY,
+    );
+    if (
+      persistedLocalStore &&
+      typeof persistedLocalStore === "object" &&
+      "localReportsByGuild" in persistedLocalStore
+    ) {
+      const persistedLocalReportsByGuild = (
+        persistedLocalStore as {
+          localReportsByGuild?: unknown;
         }
-        if (k.scoutName === undefined) {
-          k.scoutName = "";
-        }
-        if (k.scoutDiscordId === undefined) {
-          k.scoutDiscordId = "";
-        }
-      });
+      ).localReportsByGuild;
+      Grid.localReportsByGuild = this.normalizeLocalReportsByGuild(
+        persistedLocalReportsByGuild,
+      );
     }
+
+    if (!Grid.sightingsByGuild || typeof Grid.sightingsByGuild !== "object") {
+      Grid.sightingsByGuild = {};
+    }
+
+    if (
+      !Grid.localReportsByGuild ||
+      typeof Grid.localReportsByGuild !== "object"
+    ) {
+      Grid.localReportsByGuild = {};
+    }
+
+    // Intentionally do not migrate centralized legacy intel on this rollout.
+    await this.saveScoutIntel();
+    await this.saveLocalReports();
   }
 
-  public seenSoFar() {
-    return Grid.seenInHoth;
+  public seenSoFar(guildId: string) {
+    return [...this.getSightingsForGuild(guildId)];
   }
 
-  public getScoutReports() {
+  public localReportsSoFar(guildId: string) {
+    return [...this.getLocalReportsForGuild(guildId)];
+  }
+
+  public getScoutReports(guildId: string) {
+    const scoutReports = this.getScoutReportMapForGuild(guildId);
+
     // remove any reports older than 5 minutes
     const now = Date.now();
-    const oldKeys = Array
-      .from(Grid.scoutReports.keys())
-      .filter(
-        (key) =>
-          now - Grid.scoutReports.get(key)!.lastSeen.getTime() > 5 * 60 * 1000,
-      );
+    const oldKeys = Array.from(scoutReports.keys()).filter(
+      (key) => now - scoutReports.get(key)!.lastSeen.getTime() > 5 * 60 * 1000,
+    );
     for (const key of oldKeys) {
-      Grid.scoutReports.delete(key);
+      scoutReports.delete(key);
     }
 
-    return Grid.scoutReports;
+    return scoutReports;
   }
 
-  public scoutReport(scout: ScoutMessage) {
-    let entry = Grid.scoutReports.get(scout.Scout);
+  public scoutReport(guildId: string, scout: ScoutMessage) {
+    const scoutReports = this.getScoutReportMapForGuild(guildId);
+    let entry = scoutReports.get(scout.Scout);
 
     // if doesn't exist, make one
     if (!entry) {
@@ -112,33 +131,41 @@ export class Grid {
         system: scout.System,
         wormhole: scout.Wormhole,
         wormholeClass: "",
-        discordId: "",
+        discordId: scout.ReporterDiscordUserId ?? "",
         version: scout.Version,
         lastSeen: new Date(),
       };
-      Grid.scoutReports.set(scout.Scout, entry);
+      scoutReports.set(scout.Scout, entry);
     }
 
     // update the entry
     if (scout.Disconnected) {
       entry.wormhole = "Lost Connection";
-    }
-    else if (scout.Wormhole.length > 0) {
+    } else if (scout.Wormhole.length > 0) {
       entry.wormhole = scout.Wormhole;
-    }
-    else {
+    } else {
       entry.wormhole = "No Wormhole";
     }
 
     entry.system = scout.System;
+    if (scout.ReporterDiscordUserId && scout.ReporterDiscordUserId.length > 0) {
+      entry.discordId = scout.ReporterDiscordUserId;
+    }
     entry.version = scout.Version;
     entry.lastSeen = new Date();
   }
 
-  public async activation(scout: string, wormhole: string, system: string) {
+  public async activation(
+    guildId: string,
+    scout: string,
+    wormhole: string,
+    system: string,
+    scoutDiscordId?: string,
+  ) {
     const key = `Activation/${scout}/${wormhole}/${Date.now()}`;
+    const sightings = this.getSightingsForGuild(guildId);
 
-    Grid.seenInHoth.push({
+    sightings.push({
       key,
       name: "Activation",
       ship: "",
@@ -149,30 +176,34 @@ export class Grid {
       lastSeenOnGrid: Date.now(),
       wormholeName: wormhole,
       scoutName: scout,
-      scoutDiscordId: "",
+      scoutDiscordId: scoutDiscordId ?? "",
       system,
     });
 
-    await this.save();
+    await this.saveScoutIntel();
   }
 
   public async seenOnGrid(
+    guildId: string,
     entry: ScoutEntry,
     wormholeClass: string,
     scoutName: string,
+    scoutDiscordId: string,
     wormholeCode: string,
     system: string,
   ) {
+    const sightings = this.getSightingsForGuild(guildId);
+
     // We want to track this pilot in this ship
     var key = `${entry.Name}/${entry.Type}`;
 
     // get the most recent sighting of this pilot in this ship
-    const recentSighting = Grid.seenInHoth.findLast((p) => p.key === key);
+    const recentSighting = sightings.findLast((p) => p.key === key);
 
     // if we don't have a recent sighting or it was on a different wormhole
     if (!recentSighting || recentSighting.wormhole !== wormholeCode) {
       // call this a new sighting!
-      Grid.seenInHoth.push({
+      sightings.push({
         key,
         name: entry.Name ?? "",
         ship: entry.Type ?? "",
@@ -183,24 +214,214 @@ export class Grid {
         lastSeenOnGrid: Date.now(),
         wormholeName: wormholeCode,
         scoutName: scoutName,
-        scoutDiscordId: "",
+        scoutDiscordId,
         system,
       });
-    }
-    else {
+    } else {
       // seen this pilot at this location most recently
       recentSighting.lastSeenOnGrid = Date.now();
+      recentSighting.scoutName = scoutName;
+      recentSighting.scoutDiscordId = scoutDiscordId;
+      recentSighting.system = system;
       // move it to the end of the list
-      Grid.seenInHoth = Grid.seenInHoth.filter((p) => p.key !== key);
-      Grid.seenInHoth.push(recentSighting);
+      Grid.sightingsByGuild[guildId] = sightings.filter((p) => p.key !== key);
+      Grid.sightingsByGuild[guildId].push(recentSighting);
     }
-    await this.save();
+    await this.saveScoutIntel();
   }
 
-  async delete(key: string) {
-    const startLength = Grid.seenInHoth.length;
-    Grid.seenInHoth = Grid.seenInHoth.filter((k) => k.key !== key);
-    await this.save();
-    return startLength !== Grid.seenInHoth.length;
+  public async submitLocalReport(guildId: string, localReport: LocalReport) {
+    const reports = this.getLocalReportsForGuild(guildId);
+
+    reports.push({
+      System: localReport.System || "Unknown",
+      ScoutName: localReport.ScoutName || "Unknown",
+      Time: Number.isFinite(localReport.Time) ? localReport.Time : Date.now(),
+      Locals: Array.isArray(localReport.Locals) ? localReport.Locals : [],
+    });
+
+    if (reports.length > Grid.MAX_LOCAL_REPORTS) {
+      reports.splice(0, reports.length - Grid.MAX_LOCAL_REPORTS);
+    }
+
+    await this.saveLocalReports();
+  }
+
+  async delete(guildId: string, key: string) {
+    const sightings = this.getSightingsForGuild(guildId);
+
+    const startLength = sightings.length;
+    Grid.sightingsByGuild[guildId] = sightings.filter((k) => k.key !== key);
+    await this.saveScoutIntel();
+    return startLength !== Grid.sightingsByGuild[guildId].length;
+  }
+
+  private getSightingsForGuild(guildId: string): PilotSighting[] {
+    if (!Grid.sightingsByGuild[guildId]) {
+      Grid.sightingsByGuild[guildId] = [];
+    }
+
+    return Grid.sightingsByGuild[guildId];
+  }
+
+  private getLocalReportsForGuild(guildId: string): LocalReport[] {
+    if (!Grid.localReportsByGuild[guildId]) {
+      Grid.localReportsByGuild[guildId] = [];
+    }
+
+    return Grid.localReportsByGuild[guildId];
+  }
+
+  private getScoutReportMapForGuild(guildId: string): Map<string, Scout> {
+    let reportMap = Grid.scoutReportsByGuild.get(guildId);
+    if (!reportMap) {
+      reportMap = new Map<string, Scout>();
+      Grid.scoutReportsByGuild.set(guildId, reportMap);
+    }
+
+    return reportMap;
+  }
+
+  // Normalizes persisted per-guild sightings into a strict guildId -> PilotSighting[] map.
+  // Non-object inputs return an empty map, and each guild array is normalized item-by-item.
+  private normalizeSightingsByGuild(
+    sightingsByGuild: unknown,
+  ): Record<string, PilotSighting[]> {
+    const normalized: Record<string, PilotSighting[]> = {};
+    if (!sightingsByGuild || typeof sightingsByGuild !== "object") {
+      return normalized;
+    }
+
+    for (const [guildId, sightings] of Object.entries(sightingsByGuild)) {
+      normalized[guildId] = this.normalizeSightings(sightings);
+    }
+    return normalized;
+  }
+
+  // Normalizes persisted per-guild local reports into the current LocalReport contract.
+  // Invalid rows are skipped, missing fields are defaulted, and nested local pilot rows are sanitized.
+  private normalizeLocalReportsByGuild(
+    localReportsByGuild: unknown,
+  ): Record<string, LocalReport[]> {
+    const normalized: Record<string, LocalReport[]> = {};
+    if (!localReportsByGuild || typeof localReportsByGuild !== "object") {
+      return normalized;
+    }
+
+    for (const [guildId, localReports] of Object.entries(localReportsByGuild)) {
+      if (!Array.isArray(localReports)) {
+        normalized[guildId] = [];
+        continue;
+      }
+
+      normalized[guildId] = localReports
+        .filter(
+          (report) =>
+            !!report && typeof report === "object" && !Array.isArray(report),
+        )
+        .map((report) => {
+          const raw = report as {
+            System?: unknown;
+            ScoutName?: unknown;
+            Time?: unknown;
+            Locals?: unknown;
+          };
+
+          const localRows = Array.isArray(raw.Locals) ? raw.Locals : [];
+
+          const locals: LocalPilot[] = localRows
+            .map((local): LocalPilot | null => {
+              if (!local || typeof local !== "object" || Array.isArray(local)) {
+                return null;
+              }
+
+              const localObject = local as {
+                Name?: unknown;
+                CharacterID?: unknown;
+                StandingHint?: unknown;
+              };
+
+              const name = String(localObject.Name ?? "").trim();
+              if (!name) {
+                return null;
+              }
+
+              const characterId = Number(localObject.CharacterID ?? 0);
+              return {
+                Name: name,
+                CharacterID: Number.isFinite(characterId) ? characterId : 0,
+                StandingHint: String(localObject.StandingHint ?? ""),
+              };
+            })
+            .filter((local): local is LocalPilot => local !== null);
+
+          const rawTime = Number(raw.Time ?? Date.now());
+          const normalizedTime =
+            rawTime < 1_000_000_000_000 ? rawTime * 1000 : rawTime;
+
+          return {
+            System: String(raw.System ?? "Unknown"),
+            ScoutName: String(raw.ScoutName ?? "Unknown"),
+            Time: Number.isFinite(normalizedTime) ? normalizedTime : Date.now(),
+            Locals: locals,
+          };
+        });
+    }
+    return normalized;
+  }
+
+  // Normalizes raw sighting rows into a safe PilotSighting[] payload.
+  // Invalid entries are dropped and all required fields are coerced/defaulted to stable values.
+  private normalizeSightings(sightings: unknown): PilotSighting[] {
+    if (!Array.isArray(sightings)) {
+      return [];
+    }
+
+    return sightings
+      .filter(
+        (sighting) =>
+          !!sighting &&
+          typeof sighting === "object" &&
+          !Array.isArray(sighting),
+      )
+      .map((sighting) => {
+        const raw = sighting as {
+          key?: unknown;
+          name?: unknown;
+          ship?: unknown;
+          alliance?: unknown;
+          corp?: unknown;
+          wormhole?: unknown;
+          firstSeenOnGrid?: unknown;
+          lastSeenOnGrid?: unknown;
+          wormholeName?: unknown;
+          scoutName?: unknown;
+          scoutDiscordId?: unknown;
+          system?: unknown;
+        };
+
+        return {
+          key: String(raw.key ?? "").replace("/", ""),
+          name: String(raw.name ?? ""),
+          ship: String(raw.ship ?? ""),
+          alliance: String(raw.alliance ?? ""),
+          corp: String(raw.corp ?? ""),
+          wormhole: String(raw.wormhole ?? ""),
+          firstSeenOnGrid:
+            typeof raw.firstSeenOnGrid === "number" &&
+            Number.isFinite(raw.firstSeenOnGrid)
+              ? raw.firstSeenOnGrid
+              : Date.now(),
+          lastSeenOnGrid:
+            typeof raw.lastSeenOnGrid === "number" &&
+            Number.isFinite(raw.lastSeenOnGrid)
+              ? raw.lastSeenOnGrid
+              : Date.now(),
+          wormholeName: String(raw.wormholeName ?? ""),
+          scoutName: String(raw.scoutName ?? ""),
+          scoutDiscordId: String(raw.scoutDiscordId ?? ""),
+          system: String(raw.system ?? ""),
+        };
+      });
   }
 }

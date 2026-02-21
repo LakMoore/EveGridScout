@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Access Denied - GridScout</title>
+    <style>
+        :root {
+            color-scheme: dark;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            background: radial-gradient(circle at top, #1f2937 0%, #111827 50%, #0b1020 100%);
+            color: #e5e7eb;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+
+        .card {
+            width: 100%;
+            max-width: 760px;
+            background: rgba(17, 24, 39, 0.93);
+            border: 1px solid #374151;
+            border-radius: 14px;
+            padding: 30px;
+            box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
+        }
+
+        h1 {
+            margin: 0 0 14px;
+            color: #f9fafb;
+            font-size: 1.9rem;
+        }
+
+        p {
+            margin: 12px 0;
+            color: #d1d5db;
+            line-height: 1.6;
+        }
+
+        .reason {
+            margin-top: 16px;
+            border-left: 3px solid #f59e0b;
+            background: rgba(245, 158, 11, 0.08);
+            padding: 12px 14px;
+            border-radius: 8px;
+            color: #fcd34d;
+        }
+
+        .actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 24px;
+        }
+
+        .button {
+            display: inline-block;
+            text-decoration: none;
+            border-radius: 10px;
+            padding: 11px 18px;
+            font-weight: 600;
+            border: 1px solid transparent;
+            transition: transform 0.15s ease, opacity 0.15s ease;
+        }
+
+        .button:hover {
+            transform: translateY(-1px);
+            opacity: 0.95;
+        }
+
+        .button-primary {
+            background: #5865f2;
+            border-color: #5865f2;
+            color: #ffffff;
+        }
+
+        .button-secondary {
+            background: transparent;
+            border-color: #4b5563;
+            color: #e5e7eb;
+        }
+    </style>
+</head>
+
+<body>
+    <main class="card">
+        <h1>Access Denied</h1>
+        <p>
+            Your Discord account is authenticated, but GridScout cannot grant access to logs for any shared server.
+        </p>
+        <p>
+            Ask a server administrator to assign you the configured GridScout viewer role, then sign out and sign in
+            again.
+        </p>
+        <div class="reason"><strong>Details:</strong> <%= reason %></div>
+
+        <div class="actions">
+            <a class="button button-primary" href="<%= fix_path('/logout') %>">Sign out</a>
+            <a class="button button-secondary" href="<%= fix_path('/auth/discord/login') %>">Login using Discord</a>
+            <a class="button button-secondary" href="<%= fix_path('/') %>">Back to Home</a>
+        </div>
+    </main>
+</body>
+
+</html>
