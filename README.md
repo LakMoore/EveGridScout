@@ -14,6 +14,7 @@ GridScout web log views now require Discord OAuth login.
 - `DISCORD_OAUTH_REDIRECT_URI`: OAuth callback URL, for local development:
   - `http://localhost:3000/auth/discord/callback`
 - `DISCORD_TOKEN_CACHE_TTL_SECONDS`: TTL for cached hashed ingest tokens (default `900`)
+- `TRUST_PROXY`: Set to `true` when running behind reverse proxy/TLS termination (e.g. Nginx) so secure cookies use forwarded HTTPS protocol.
 
 ### OAuth scopes
 

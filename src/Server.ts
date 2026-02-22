@@ -130,6 +130,9 @@ export class Server {
 
   public constructor(client: Client) {
     this.client = client;
+    this.app.proxy =
+      process.env.TRUST_PROXY === "true" ||
+      process.env.NODE_ENV === "production";
   }
 
   public async start(koa_port: number) {
