@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EveCommander Install & User Guide</title>
+    <style>
+        :root {
+            color-scheme: dark;
+        }
+
+        body {
+            margin: 0;
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            background: radial-gradient(circle at top, #1f2937 0%, #111827 50%, #0b1020 100%);
+            color: #e5e7eb;
+            padding: 24px;
+        }
+
+        .container {
+            width: min(1100px, 100%);
+            margin: 0 auto;
+        }
+
+        .hero {
+            background: rgba(17, 24, 39, 0.93);
+            border: 1px solid #374151;
+            border-radius: 14px;
+            box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
+            padding: 24px;
+            margin-bottom: 16px;
+        }
+
+        h1 {
+            margin: 0 0 8px;
+            color: #f9fafb;
+            font-size: 2rem;
+        }
+
+        h2 {
+            margin: 0 0 12px;
+            color: #f9fafb;
+            font-size: 1.3rem;
+        }
+
+        h3 {
+            margin: 0 0 8px;
+            color: #f3f4f6;
+            font-size: 1.05rem;
+        }
+
+        p {
+            margin: 0 0 14px;
+            color: #d1d5db;
+            line-height: 1.55;
+        }
+
+        ol {
+            margin: 0 0 18px;
+            padding-left: 20px;
+            color: #e5e7eb;
+            line-height: 1.6;
+        }
+
+        ul {
+            margin: 0 0 14px;
+            padding-left: 20px;
+            color: #d1d5db;
+            line-height: 1.6;
+        }
+
+        li {
+            margin-bottom: 4px;
+        }
+
+        .grid {
+            display: grid;
+            gap: 16px;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        }
+
+        .card {
+            background: rgba(17, 24, 39, 0.93);
+            border: 1px solid #374151;
+            border-radius: 14px;
+            box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+            padding: 20px;
+        }
+
+        .banner {
+            border: 1px solid #14532d;
+            background: rgba(22, 101, 52, 0.2);
+            border-radius: 10px;
+            padding: 12px;
+            margin: 12px 0 16px;
+        }
+
+        .banner ul {
+            margin-bottom: 0;
+        }
+
+        .actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 10px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 14px;
+            border-radius: 8px;
+            border: 1px solid #4b5563;
+            background: rgba(55, 65, 81, 0.9);
+            color: #e5e7eb;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .btn-primary {
+            border-color: #2563eb;
+            background: rgba(37, 99, 235, 0.85);
+            color: #f9fafb;
+        }
+
+        .muted {
+            color: #9ca3af;
+            font-size: 0.95rem;
+        }
+    </style>
+</head>
+
+<body>
+    <main class="container">
+        <section class="hero">
+            <h1>Install EveCommander</h1>
+            <p class="muted">Read-only intelligence gathering and monitoring for EVE Online multi-client operations.</p>
+
+            <div class="banner">
+                <h3>⚠️ EULA Compliance</h3>
+                <ul>
+                    <li>✅ Read-only UI/memory parsing</li>
+                    <li>✅ No automation, no input simulation, no bot behavior</li>
+                    <li>✅ Information and monitoring only</li>
+                </ul>
+            </div>
+
+            <h2>Install Steps</h2>
+            <ol>
+                <li>Download the EveCommander ZIP package.</li>
+                <li>Extract the ZIP to a folder of your choice.</li>
+                <li>Run <strong>Commander.exe</strong>.</li>
+                <li>Launch your EVE Online client(s).</li>
+            </ol>
+
+            <div class="actions">
+                <a class="btn btn-primary" href="https://drive.google.com/file/d/1Kjd-Mf_2lsmlJu12XjwOTshcCDRU3FgF/view?usp=drive_link" target="_blank" rel="noopener noreferrer">Download ZIP</a>
+                <a class="btn" href="<%= fix_path('/') %>">Back to Dashboards</a>
+            </div>
+        </section>
+
+        <section class="grid">
+            <article class="card">
+                <h2>System Requirements</h2>
+                <ul>
+                    <li>Windows 10/11 (64-bit)</li>
+                    <li>.NET 9.0 Runtime</li>
+                    <li>EVE Online client(s)</li>
+                </ul>
+            </article>
+
+            <article class="card">
+                <h2>Quick Start</h2>
+                <ol>
+                    <li>Start EveCommander and your EVE clients.</li>
+                    <li>Wait for clients to be detected in Commander (slow process!).</li>
+                    <li>Enable plugins as required in Plugin Selector.</li>
+                    <li>Click "Start".</li>
+                </ol>
+            </article>
+
+            <article class="card">
+                <h2>Global Hotkeys</h2>
+                <ul>
+                    <li><strong>Ctrl+F8</strong>: Stop monitoring all clients</li>
+                    <li><strong>Backslash (\)</strong>: Cycle Eve client windows to front</li>
+                </ul>
+            </article>
+
+            <article class="card">
+                <h2>Optional Plugin Types</h2>
+                <ul>
+                    <li><strong>Character-specific</strong>: enable per character</li>
+                    <li><strong>Auto-run</strong>: start when client is detected</li>
+                    <li><strong>Global</strong>: operate across all clients</li>
+                </ul>
+                <p class="muted">Examples: GridScout, LocalIntel, KeepstarWatcher.</p>
+            </article>
+
+            <article class="card">
+                <h2>Troubleshooting</h2>
+                <ul>
+                    <li>Remember; ctrl+F8 stops monitoring all clients.</li>
+                    <li>Red plugin status means error; error message should be shown.</li>
+                    <li>Green plugin status means that plugin thinks it has finished!</li>
+                    <li>Keep important UI elements visible for reliable parsing.</li>
+                    <li>Plugins wont show in the list until at least one Eve Client has been detected fully.</li>
+                </ul>
+            </article>
+
+            <article class="card">
+                <h2>FAQ</h2>
+                <ul>
+                    <li><strong>Safe to use?</strong> We believe so — read-only by design.</li>
+                    <li><strong>Can it control ships?</strong> No, never.</li>
+                    <li><strong>How often is a client checked?</strong> About every 3 seconds.</li>
+                    <li><strong>Can you speed up startup?</strong> Unfortunately, no. But it is cached so just don't close your game client often.</li>
+                    <li><strong>Mac/Linux?</strong> No, Windows only.</li>
+                </ul>
+            </article>
+        </section>
+
+        <section class="hero" style="margin-top: 16px;">
+            <h2>Support & Source</h2>
+            <p>For support, troubleshooting and contribution details, see the EveCommander repository.</p>
+            <div class="actions">
+                <a class="btn" href="https://github.com/LakMoore/EveCommander" target="_blank" rel="noopener noreferrer">Open GitHub Repository</a>
+            </div>
+            <p class="muted" style="margin-top: 12px;">Fly safe o7</p>
+        </section>
+    </main>
+</body>
+
+</html>

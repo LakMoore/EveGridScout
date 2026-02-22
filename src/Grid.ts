@@ -339,6 +339,7 @@ export class Grid {
                 Name?: unknown;
                 CharacterID?: unknown;
                 StandingHint?: unknown;
+                StandingIconId?: unknown;
               };
 
               const name = String(localObject.Name ?? "").trim();
@@ -347,10 +348,14 @@ export class Grid {
               }
 
               const characterId = Number(localObject.CharacterID ?? 0);
+              const standingIconId = Number(localObject.StandingIconId ?? 0);
               return {
                 Name: name,
                 CharacterID: Number.isFinite(characterId) ? characterId : 0,
                 StandingHint: String(localObject.StandingHint ?? ""),
+                StandingIconId: Number.isFinite(standingIconId)
+                  ? Math.trunc(standingIconId)
+                  : 0,
               };
             })
             .filter((local): local is LocalPilot => local !== null);

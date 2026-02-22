@@ -24,7 +24,7 @@
 
         h1 {
             color: #f9fafb;
-            margin: 28px 0 14px;
+            margin: 0 0 14px;
             font-size: 1.6rem;
         }
 
@@ -34,6 +34,7 @@
             border-radius: 14px;
             box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
             padding: 20px;
+            margin-top: 48px;
             margin-bottom: 18px;
         }
 
@@ -124,6 +125,24 @@
             let debounceTimer = null;
             let refreshInFlight = false;
             let refreshQueued = false;
+            let lastUpdateSignalAt = 0;
+            let pendingFilteredUpdates = Number(window.gridScoutPendingFilteredUpdates ?? 0);
+
+            const notifyPendingUpdatesChanged = () => {
+                window.gridScoutPendingFilteredUpdates = pendingFilteredUpdates;
+                if (typeof window.gridScoutOnPendingUpdatesChanged === "function") {
+                    window.gridScoutOnPendingUpdatesChanged(pendingFilteredUpdates);
+                }
+            };
+
+            const isPilotFilterActive = () => {
+                return String(window.gridScoutSelectedPilot ?? "").trim().length > 0;
+            };
+
+            const incrementPendingFilteredUpdates = () => {
+                pendingFilteredUpdates += 1;
+                notifyPendingUpdatesChanged();
+            };
 
             function runDashboardRefresh() {
                 if (refreshInFlight) {
@@ -137,6 +156,8 @@
                     swap: "outerHTML"
                 }).finally(function () {
                     refreshInFlight = false;
+                    pendingFilteredUpdates = 0;
+                    notifyPendingUpdatesChanged();
                     if (refreshQueued) {
                         refreshQueued = false;
                         scheduleDashboardRefresh();
@@ -145,6 +166,11 @@
             }
 
             function scheduleDashboardRefresh() {
+                if (isPilotFilterActive()) {
+                    incrementPendingFilteredUpdates();
+                    return;
+                }
+
                 if (debounceTimer !== null) {
                     window.clearTimeout(debounceTimer);
                 }
@@ -155,12 +181,34 @@
                 }, refreshDebounceMs);
             }
 
-            eventSource.addEventListener("report-ingested", function () {
+            function handleIncomingUpdateSignal() {
+                const now = Date.now();
+                if (now - lastUpdateSignalAt < 150) {
+                    return;
+                }
+                lastUpdateSignalAt = now;
                 scheduleDashboardRefresh();
+            }
+
+            window.gridScoutRequestDashboardRefresh = function () {
+                pendingFilteredUpdates = 0;
+                notifyPendingUpdatesChanged();
+                scheduleDashboardRefresh();
+            };
+
+            window.gridScoutAcknowledgePendingUpdates = function () {
+                pendingFilteredUpdates = 0;
+                notifyPendingUpdatesChanged();
+            };
+
+            notifyPendingUpdatesChanged();
+
+            eventSource.addEventListener("report-ingested", function () {
+                handleIncomingUpdateSignal();
             });
 
             eventSource.onmessage = function () {
-                scheduleDashboardRefresh();
+                handleIncomingUpdateSignal();
             };
 
             eventSource.onerror = function () {

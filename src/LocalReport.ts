@@ -9,4 +9,5 @@ export interface LocalPilot {
   Name: string;
   CharacterID: number;
   StandingHint: string;
+  StandingIconId: number;
 }

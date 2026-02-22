@@ -1,7 +1,6 @@
 import Koa from "koa";
 import Router from "koa-router";
 import serve from "koa-static";
-import mount from "koa-mount";
 import views from "@ladjs/koa-views";
 import bodyParser from "koa-bodyparser";
 import path from "node:path";
@@ -18,6 +17,7 @@ import { Data } from "./Data.js";
 import { DiscordOAuth } from "./DiscordOAuth.js";
 import { AuthSession, AuthSessionStore } from "./AuthSessionStore.js";
 import { NotificationService } from "./NotificationService.js";
+import { StandingIconIdTracker } from "./StandingIconIdTracker.js";
 
 const moduleDirectory = path.dirname(fileURLToPath(import.meta.url));
 
@@ -150,23 +150,6 @@ export class Server {
     });
 
     this.app.use(serve(path.join(moduleDirectory, "../public")));
-
-    this.app.use(
-      mount(
-        "/install",
-        serve(path.join(moduleDirectory, "../install"), {
-          setHeaders: (res, filePath) => {
-            if (filePath.endsWith(".application")) {
-              res.setHeader("Content-Type", "application/x-ms-application");
-            } else if (filePath.endsWith(".manifest")) {
-              res.setHeader("Content-Type", "application/x-ms-manifest");
-            } else if (filePath.endsWith(".deploy")) {
-              res.setHeader("Content-Type", "application/octet-stream");
-            }
-          },
-        }),
-      ),
-    );
 
     this.app.use(
       views(path.join(moduleDirectory, "../views"), {
@@ -411,7 +394,7 @@ export class Server {
     );
 
     this.router.get("/install", async (ctx) => {
-      ctx.redirect("./install/Publish.html");
+      await ctx.render("install", { fix_path });
     });
 
     this.router.get("/errors", this.requireWebAuth.bind(this), async (ctx) => {
@@ -710,6 +693,7 @@ export class Server {
           ingestGuildResolution.guildId,
           localReport,
         );
+        await StandingIconIdTracker.recordLocalReport(localReport);
         const messageCount = ++this.counter;
         this.broadcastSseEvent("report-ingested", {
           messageCount,
@@ -1738,6 +1722,7 @@ export class Server {
             Name?: unknown;
             CharacterID?: unknown;
             StandingHint?: unknown;
+            StandingIconId?: unknown;
           };
 
           const name = String(localObject.Name ?? "").trim();
@@ -1746,10 +1731,14 @@ export class Server {
           }
 
           const characterId = Number(localObject.CharacterID ?? 0);
+          const standingIconId = Number(localObject.StandingIconId ?? 0);
           return {
             Name: name,
             CharacterID: Number.isFinite(characterId) ? characterId : 0,
             StandingHint: String(localObject.StandingHint ?? ""),
+            StandingIconId: Number.isFinite(standingIconId)
+              ? Math.trunc(standingIconId)
+              : 0,
           };
         })
         .filter(
