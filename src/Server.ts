@@ -694,15 +694,25 @@ export class Server {
           return;
         }
 
+        const previousScoutReport = this.getLatestLocalReportForScout(
+          ingestGuildResolution.guildId,
+          localReport.ScoutName,
+        );
+        const scoutChangedSystem = this.hasScoutChangedSystem(
+          previousScoutReport,
+          localReport,
+        );
+
         const previousSystemReport = this.getLatestLocalReportForSystem(
           ingestGuildResolution.guildId,
           localReport.System,
         );
-        const newlyAddedNonFriendlyPilots =
-          this.getNewNonFriendlyLocalPilotNames(
-            previousSystemReport,
-            localReport,
-          );
+        const newlyAddedNonFriendlyPilots = scoutChangedSystem
+          ? []
+          : this.getNewNonFriendlyLocalPilotNames(
+              previousSystemReport,
+              localReport,
+            );
 
         await this.grid.submitLocalReport(
           ingestGuildResolution.guildId,
@@ -1505,6 +1515,48 @@ export class Server {
     }
 
     return null;
+  }
+
+  private getLatestLocalReportForScout(
+    guildId: string,
+    scoutName: string,
+  ): LocalReport | null {
+    const normalizedScoutName = scoutName.trim().toLowerCase();
+    if (!normalizedScoutName) {
+      return null;
+    }
+
+    const reports = this.grid.localReportsSoFar(guildId);
+    for (let index = reports.length - 1; index >= 0; index -= 1) {
+      const report = reports[index];
+      if (!report) {
+        continue;
+      }
+
+      const reportScoutName = report.ScoutName?.trim().toLowerCase() ?? "";
+      if (reportScoutName === normalizedScoutName) {
+        return report;
+      }
+    }
+
+    return null;
+  }
+
+  private hasScoutChangedSystem(
+    previousScoutReport: LocalReport | null,
+    currentReport: LocalReport,
+  ): boolean {
+    if (!previousScoutReport) {
+      return false;
+    }
+
+    const previousSystem =
+      previousScoutReport.System?.trim().toLowerCase() ?? "";
+    const currentSystem = currentReport.System?.trim().toLowerCase() ?? "";
+
+    return (
+      !!previousSystem && !!currentSystem && previousSystem !== currentSystem
+    );
   }
 
   private getNewNonFriendlyLocalPilotNames(
