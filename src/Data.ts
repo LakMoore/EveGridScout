@@ -482,4 +482,54 @@ export class Data {
     await storage.setItem(Data.SPY_FLAGS_KEY, spyFlags);
     return updated;
   }
+
+  public async removeSpyFlagForGuild(
+    userId: string,
+    guildId: string,
+  ): Promise<{
+    found: boolean;
+    removedForGuild: boolean;
+    remainingGuildIds: string[];
+  }> {
+    const spyFlags = await this.getSpyFlags();
+    const existing = spyFlags[userId];
+
+    if (!existing) {
+      return {
+        found: false,
+        removedForGuild: false,
+        remainingGuildIds: [],
+      };
+    }
+
+    const remainingGuildIds = existing.guildIds.filter((id) => id !== guildId);
+    const removedForGuild =
+      remainingGuildIds.length !== existing.guildIds.length;
+
+    if (!removedForGuild) {
+      return {
+        found: true,
+        removedForGuild: false,
+        remainingGuildIds: existing.guildIds,
+      };
+    }
+
+    if (remainingGuildIds.length === 0) {
+      delete spyFlags[userId];
+    } else {
+      spyFlags[userId] = {
+        ...existing,
+        guildIds: remainingGuildIds,
+      };
+    }
+
+    Data.SPY_FLAGS = spyFlags;
+    await storage.setItem(Data.SPY_FLAGS_KEY, spyFlags);
+
+    return {
+      found: true,
+      removedForGuild: true,
+      remainingGuildIds,
+    };
+  }
 }
