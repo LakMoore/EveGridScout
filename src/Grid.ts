@@ -1,5 +1,5 @@
 import { Data } from "./Data.js";
-import { LocalPilot, LocalReport } from "./LocalReport.js";
+import { GridPilot, LocalPilot, LocalReport } from "./LocalReport.js";
 import { PilotSighting } from "./PilotSighting.js";
 import { ScoutEntry } from "./ScoutEntry.js";
 import { ScoutMessage } from "./ScoutMessage.js";
@@ -236,8 +236,10 @@ export class Grid {
     reports.push({
       System: localReport.System || "Unknown",
       ScoutName: localReport.ScoutName || "Unknown",
+      Status: localReport.Status || "Unknown",
       Time: Number.isFinite(localReport.Time) ? localReport.Time : Date.now(),
       Locals: Array.isArray(localReport.Locals) ? localReport.Locals : [],
+      OnGrid: Array.isArray(localReport.OnGrid) ? localReport.OnGrid : [],
     });
 
     if (reports.length > Grid.MAX_LOCAL_REPORTS) {
@@ -323,8 +325,10 @@ export class Grid {
           const raw = report as {
             System?: unknown;
             ScoutName?: unknown;
+            Status?: unknown;
             Time?: unknown;
             Locals?: unknown;
+            OnGrid?: unknown;
           };
 
           const localRows = Array.isArray(raw.Locals) ? raw.Locals : [];
@@ -360,6 +364,69 @@ export class Grid {
             })
             .filter((local): local is LocalPilot => local !== null);
 
+          const onGridRows = Array.isArray(raw.OnGrid) ? raw.OnGrid : [];
+          const onGrid: GridPilot[] = onGridRows
+            .map((gridPilot): GridPilot | null => {
+              if (
+                !gridPilot ||
+                typeof gridPilot !== "object" ||
+                Array.isArray(gridPilot)
+              ) {
+                return null;
+              }
+
+              const gridPilotObject = gridPilot as {
+                PilotName?: unknown;
+                ShipType?: unknown;
+                ShipTypeId?: unknown;
+                StandingHint?: unknown;
+                StandingIconId?: unknown;
+                Action?: unknown;
+                Distance?: unknown;
+                DistanceMeters?: unknown;
+                Corporation?: unknown;
+                Alliance?: unknown;
+              };
+
+              const pilotName = String(gridPilotObject.PilotName ?? "").trim();
+              const shipType = String(gridPilotObject.ShipType ?? "").trim();
+              const action = String(gridPilotObject.Action ?? "").trim();
+              if (!pilotName || !shipType || !action) {
+                return null;
+              }
+
+              const standingIconId = Number(
+                gridPilotObject.StandingIconId ?? NaN,
+              );
+              const shipTypeId = Number(gridPilotObject.ShipTypeId ?? NaN);
+              const distanceMeters = Number(
+                gridPilotObject.DistanceMeters ?? NaN,
+              );
+
+              return {
+                PilotName: pilotName,
+                ShipType: shipType,
+                ShipTypeId: Number.isFinite(shipTypeId)
+                  ? Math.trunc(shipTypeId)
+                  : undefined,
+                StandingHint: String(gridPilotObject.StandingHint ?? ""),
+                StandingIconId: Number.isFinite(standingIconId)
+                  ? Math.trunc(standingIconId)
+                  : undefined,
+                Action: action,
+                Distance:
+                  String(gridPilotObject.Distance ?? "").trim() || undefined,
+                DistanceMeters: Number.isFinite(distanceMeters)
+                  ? distanceMeters
+                  : undefined,
+                Corporation:
+                  String(gridPilotObject.Corporation ?? "").trim() || undefined,
+                Alliance:
+                  String(gridPilotObject.Alliance ?? "").trim() || undefined,
+              };
+            })
+            .filter((gridPilot): gridPilot is GridPilot => gridPilot !== null);
+
           const rawTime = Number(raw.Time ?? Date.now());
           const normalizedTime =
             rawTime < 1_000_000_000_000 ? rawTime * 1000 : rawTime;
@@ -367,8 +434,10 @@ export class Grid {
           return {
             System: String(raw.System ?? "Unknown"),
             ScoutName: String(raw.ScoutName ?? "Unknown"),
+            Status: String(raw.Status ?? "Unknown"),
             Time: Number.isFinite(normalizedTime) ? normalizedTime : Date.now(),
             Locals: locals,
+            OnGrid: onGrid,
           };
         });
     }

@@ -15,13 +15,15 @@ export class StandingIconIdTracker {
   );
 
   public static async recordLocalReport(localReport: LocalReport) {
-    const observedIds = Array.from(
-      new Set(
-        localReport.Locals.map((local) =>
-          Math.trunc(Number(local.StandingIconId)),
-        ).filter((value) => Number.isFinite(value)),
-      ),
-    );
+    const localIds = localReport.Locals.map((local) =>
+      Math.trunc(Number(local.StandingIconId)),
+    ).filter((value) => Number.isFinite(value));
+
+    const onGridIds = (localReport.OnGrid ?? [])
+      .map((pilot) => Math.trunc(Number(pilot.StandingIconId ?? NaN)))
+      .filter((value) => Number.isFinite(value));
+
+    const observedIds = Array.from(new Set([...localIds, ...onGridIds]));
 
     if (observedIds.length === 0) {
       return;

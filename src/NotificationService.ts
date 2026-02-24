@@ -1,6 +1,7 @@
 import { Client } from "discord.js";
 import { Data, GuildConfig } from "./Data.js";
 import { Grid } from "./Grid.js";
+import { GridPilot } from "./LocalReport.js";
 import { GridScoutEventType } from "./GuildEvents.js";
 import { ScoutEntry } from "./ScoutEntry.js";
 import { ScoutMessage } from "./ScoutMessage.js";
@@ -20,10 +21,12 @@ export class NotificationService {
   private readonly client: Client;
   private readonly scoutLoginNoticeByScout = new Map<string, number>();
   private readonly enemySightingNoticeByKey = new Map<string, number>();
+  private readonly onGridThreatNoticeBySystem = new Map<string, number>();
   private readonly allScoutsLoggedOffNoticeSentGuilds = new Set<string>();
 
   private readonly scoutLoginCooldownMs = 5 * 60 * 1000;
   private readonly enemySightingCooldownMs = 10 * 60 * 1000;
+  private readonly onGridThreatCooldownMs = 2 * 60 * 1000;
 
   public static getInstance(client: Client): NotificationService {
     if (!NotificationService.instance) {
@@ -71,7 +74,98 @@ export class NotificationService {
     }
   }
 
-  private async handleScoutCoverageEvents(guildId: string, message: ScoutMessage) {
+  public async notifyUndockedLocalWarning(
+    guildId: string,
+    scoutDiscordUserId: string,
+    scoutName: string,
+    system: string,
+    newPilotCount: number,
+  ) {
+    if (!guildId || !scoutDiscordUserId || newPilotCount <= 0) {
+      return;
+    }
+
+    const pluralSuffix = newPilotCount === 1 ? "" : "s";
+    const normalizedSystem = system?.trim() || "Unknown System";
+    const normalizedScoutName = scoutName?.trim() || "Unknown Scout";
+    const content = `⚠️ **Non-friendlies in local:** <@${scoutDiscordUserId}> (${normalizedScoutName}) is undocked in **${normalizedSystem}**. ${newPilotCount} new non-friendly pilot${pluralSuffix} entered local.`;
+
+    const sentToEventChannel = await this.publishContentToGuildEventChannel(
+      guildId,
+      content,
+    );
+    if (sentToEventChannel) {
+      return;
+    }
+
+    await this.publishContentToGuildOwner(guildId, content);
+  }
+
+  public async notifyOnGridThreat(
+    guildId: string,
+    system: string,
+    scoutName: string,
+    status: string,
+    onGrid: GridPilot[],
+  ) {
+    if (!guildId || !Array.isArray(onGrid) || onGrid.length === 0) {
+      return;
+    }
+
+    const now = Date.now();
+    const normalizedSystem = system?.trim() || "Unknown System";
+    const dedupeKey = `${guildId}|${normalizedSystem.toLowerCase()}|${status.toLowerCase()}`;
+    const lastNoticeAt = this.onGridThreatNoticeBySystem.get(dedupeKey) ?? 0;
+
+    if (now - lastNoticeAt < this.onGridThreatCooldownMs) {
+      return;
+    }
+
+    this.onGridThreatNoticeBySystem.set(dedupeKey, now);
+
+    const normalizedScoutName = scoutName?.trim() || "Unknown Scout";
+    const normalizedStatus = status?.trim() || "Unknown Status";
+
+    const onGridLines = onGrid
+      .map((pilot) => {
+        const pilotName = pilot.PilotName?.trim() || "Unknown Pilot";
+        const shipType = pilot.ShipType?.trim() || "Unknown Ship";
+        const action = pilot.Action?.trim() || "Unknown";
+        const corp = pilot.Corporation?.trim() || "";
+        const alliance = pilot.Alliance?.trim() || "";
+        const distance = pilot.Distance?.trim() || "";
+
+        const orgParts: string[] = [];
+        if (alliance) {
+          orgParts.push(alliance);
+        }
+        if (corp && corp !== alliance) {
+          orgParts.push(corp);
+        }
+        const orgText = orgParts.length > 0 ? ` [${orgParts.join("/")}]` : "";
+        const distanceText = distance ? ` @ ${distance}` : "";
+
+        return `- ${pilotName}${orgText} — ${shipType} (${action})${distanceText}`;
+      })
+      .join("\n");
+
+    const content = `@here 🚨 **${normalizedStatus}** in **${normalizedSystem}** (Scout: ${normalizedScoutName}).\nOn-grid pilots:\n${onGridLines}`;
+
+    const sentToEventChannel = await this.publishContentToGuildEventChannel(
+      guildId,
+      content,
+    );
+    if (sentToEventChannel) {
+      return;
+    }
+
+    await this.publishContentToGuildOwner(guildId, content);
+  }
+
+  private async handleScoutCoverageEvents(
+    guildId: string,
+    message: ScoutMessage,
+  ) {
     const scoutReports = Grid.getInstance
       ? (await Grid.getInstance()).getScoutReports(guildId)
       : new Map();
@@ -192,7 +286,10 @@ export class NotificationService {
     guildId: string,
     content: string,
   ) {
-    const targetGuildConfigs = await this.getTargetGuildConfigs(eventType, guildId);
+    const targetGuildConfigs = await this.getTargetGuildConfigs(
+      eventType,
+      guildId,
+    );
 
     for (const guildConfig of targetGuildConfigs) {
       const eventChannelId = guildConfig.eventChannelId;
@@ -265,6 +362,15 @@ export class NotificationService {
         this.enemySightingNoticeByKey.delete(sightingKey);
       }
     }
+
+    for (const [
+      systemKey,
+      timestamp,
+    ] of this.onGridThreatNoticeBySystem.entries()) {
+      if (now - timestamp > this.onGridThreatCooldownMs * 2) {
+        this.onGridThreatNoticeBySystem.delete(systemKey);
+      }
+    }
   }
 
   private async publishContentToGuildEventChannel(
@@ -299,7 +405,10 @@ export class NotificationService {
       );
       return true;
     } catch (error) {
-      console.error(`Failed to send message to event channel ${eventChannelId}:`, error);
+      console.error(
+        `Failed to send message to event channel ${eventChannelId}:`,
+        error,
+      );
       return false;
     }
   }

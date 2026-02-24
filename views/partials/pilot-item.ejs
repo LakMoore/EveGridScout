@@ -9,14 +9,7 @@
     const isReportingCharacter = normalizedReporterNames.includes(normalizedPilotName);
     const pilotBackgroundColor = isReportingCharacter ? "#16a34a" : pilot.backgroundColor;
     const displayPilotName = String(pilot.name ?? "").trim();
-    const normalizedHint = String(pilot.hint ?? "").trim().toLowerCase();
-    const isFriendlyPilot =
-        normalizedHint.length === 0 ||
-        /in your fleet|in your gang/.test(normalizedHint) ||
-        /in your capsuleer corporation|in your corporation/.test(normalizedHint) ||
-        /in your alliance/.test(normalizedHint) ||
-        /good standing/.test(normalizedHint) ||
-        /excellent standing/.test(normalizedHint);
+    const isFriendlyPilot = Boolean(pilot.isFriendly);
 %>
 <div
     class="pilot-chip"

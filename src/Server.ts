@@ -10,13 +10,14 @@ import { fileURLToPath } from "node:url";
 import { ServerResponse } from "node:http";
 import { Client } from "discord.js";
 import { Grid } from "./Grid.js";
-import { LocalReport } from "./LocalReport.js";
+import { GridPilot, LocalReport } from "./LocalReport.js";
 import { MessageParser } from "./MessageParser.js";
 import { ScoutMessage } from "./ScoutMessage.js";
 import { Data } from "./Data.js";
 import { DiscordOAuth } from "./DiscordOAuth.js";
 import { AuthSession, AuthSessionStore } from "./AuthSessionStore.js";
 import { NotificationService } from "./NotificationService.js";
+import { resolveStandingHint } from "./StandingHint.js";
 import { StandingIconIdTracker } from "./StandingIconIdTracker.js";
 
 const moduleDirectory = path.dirname(fileURLToPath(import.meta.url));
@@ -63,6 +64,7 @@ interface LocalPilotView {
   hint: string;
   backgroundColor: string;
   characterId: number;
+  isFriendly: boolean;
 }
 
 interface LocalSystemView {
@@ -692,11 +694,50 @@ export class Server {
           return;
         }
 
+        const previousSystemReport = this.getLatestLocalReportForSystem(
+          ingestGuildResolution.guildId,
+          localReport.System,
+        );
+        const newlyAddedNonFriendlyPilots =
+          this.getNewNonFriendlyLocalPilotNames(
+            previousSystemReport,
+            localReport,
+          );
+
         await this.grid.submitLocalReport(
           ingestGuildResolution.guildId,
           localReport,
         );
         await StandingIconIdTracker.recordLocalReport(localReport);
+
+        // Priority 1: OnGrid threats (suppress other notifications)
+        if (
+          this.isOnGridThreatStatus(localReport.Status) &&
+          (localReport.OnGrid?.length ?? 0) > 0
+        ) {
+          await NotificationService.getInstance(this.client).notifyOnGridThreat(
+            ingestGuildResolution.guildId,
+            localReport.System,
+            localReport.ScoutName,
+            localReport.Status,
+            localReport.OnGrid ?? [],
+          );
+        } else if (
+          // Priority 2: Undocked local warnings (only if no OnGrid threat)
+          this.isUndockedStatus(localReport.Status) &&
+          newlyAddedNonFriendlyPilots.length > 0
+        ) {
+          await NotificationService.getInstance(
+            this.client,
+          ).notifyUndockedLocalWarning(
+            ingestGuildResolution.guildId,
+            tokenAuthResult.discordUserId,
+            localReport.ScoutName,
+            localReport.System,
+            newlyAddedNonFriendlyPilots.length,
+          );
+        }
+
         const messageCount = ++this.counter;
         this.broadcastSseEvent("report-ingested", {
           messageCount,
@@ -1441,6 +1482,76 @@ export class Server {
     };
   }
 
+  private getLatestLocalReportForSystem(
+    guildId: string,
+    systemName: string,
+  ): LocalReport | null {
+    const normalizedSystemName = systemName.trim().toLowerCase();
+    if (!normalizedSystemName) {
+      return null;
+    }
+
+    const reports = this.grid.localReportsSoFar(guildId);
+    for (let index = reports.length - 1; index >= 0; index -= 1) {
+      const report = reports[index];
+      if (!report) {
+        continue;
+      }
+
+      const reportSystemName = report.System?.trim().toLowerCase() ?? "";
+      if (reportSystemName === normalizedSystemName) {
+        return report;
+      }
+    }
+
+    return null;
+  }
+
+  private getNewNonFriendlyLocalPilotNames(
+    previousReport: LocalReport | null,
+    currentReport: LocalReport,
+  ): string[] {
+    if (!previousReport) {
+      return [];
+    }
+
+    const existingLocalPilotNames = new Set(
+      previousReport.Locals.map((pilot) =>
+        String(pilot.Name ?? "")
+          .trim()
+          .toLowerCase(),
+      ).filter((pilotName) => pilotName.length > 0),
+    );
+
+    const newlyAddedNonFriendlyPilots = new Set<string>();
+    for (const pilot of currentReport.Locals) {
+      const pilotName = String(pilot.Name ?? "").trim();
+      const normalizedPilotName = pilotName.toLowerCase();
+      if (!pilotName || existingLocalPilotNames.has(normalizedPilotName)) {
+        continue;
+      }
+
+      if (resolveStandingHint(String(pilot.StandingHint ?? "")).isFriendly) {
+        continue;
+      }
+
+      newlyAddedNonFriendlyPilots.add(pilotName);
+    }
+
+    return Array.from(newlyAddedNonFriendlyPilots.values());
+  }
+
+  private isUndockedStatus(status: string): boolean {
+    return status.trim().toLowerCase() === "undocked";
+  }
+
+  private isOnGridThreatStatus(status: string): boolean {
+    const normalizedStatus = status.trim().toLowerCase();
+    return (
+      normalizedStatus === "enemyongrid" || normalizedStatus === "underattack"
+    );
+  }
+
   private getLocalDashboardViewData(guildId: string) {
     const localReports = this.grid.localReportsSoFar(guildId);
     const systems = this.buildLocalSystemViews(localReports);
@@ -1523,7 +1634,7 @@ export class Server {
           }
 
           const hint = String(pilot.StandingHint ?? "").trim();
-          const resolvedTag = this.resolveLocalPilotTag(hint);
+          const resolvedTag = resolveStandingHint(hint);
           const existing = pilotsByName.get(pilotName);
 
           if (!existing || resolvedTag.precedence < existing.precedence) {
@@ -1533,6 +1644,7 @@ export class Server {
               hint,
               backgroundColor: resolvedTag.color,
               characterId: Number.isFinite(characterId) ? characterId : 0,
+              isFriendly: resolvedTag.isFriendly,
               precedence: resolvedTag.precedence,
             });
           }
@@ -1548,6 +1660,7 @@ export class Server {
             hint: pilot.hint,
             backgroundColor: pilot.backgroundColor,
             characterId: pilot.characterId,
+            isFriendly: pilot.isFriendly,
           };
         });
 
@@ -1611,92 +1724,15 @@ export class Server {
     return systemViews;
   }
 
-  private resolveLocalPilotTag(standingHint: string): {
-    precedence: number;
-    color: string;
-  } {
-    const normalizedHint = standingHint.toLowerCase();
-
-    const localTagRules: Array<{
-      match: (hint: string) => boolean;
-      color: string;
-    }> = [
-      {
-        // Pilot is at war with you
-        match: (hint) => /at war with you|at war with your/.test(hint),
-        color: "#f97316",
-      },
-      {
-        // Pilot has horrible standing
-        match: (hint) => /terrible standing|horrible standing/.test(hint),
-        color: "#dc2626",
-      },
-      {
-        // Pilot has bad standing
-        match: (hint) => /bad standing/.test(hint),
-        color: "#f59e0b",
-      },
-      {
-        // Pilot is in your fleet/gang
-        match: (hint) => /in your fleet|in your gang/.test(hint),
-        color: "#a855f7",
-      },
-      {
-        // Pilot is in your corporation
-        match: (hint) =>
-          /in your capsuleer corporation|in your corporation/.test(hint),
-        color: "#22c55e",
-      },
-      {
-        // Pilot is in your alliance
-        match: (hint) => /in your alliance/.test(hint),
-        color: "#3b82f6",
-      },
-      {
-        // Pilot has good standing
-        match: (hint) => /good standing/.test(hint),
-        color: "#60a5fa",
-      },
-      {
-        // Pilot has excellent standing
-        match: (hint) => /excellent standing/.test(hint),
-        color: "#2563eb",
-      },
-      {
-        // Pilot has security status below -5
-        match: (hint) => /security status below -5/.test(hint),
-        color: "#c026d3",
-      },
-      {
-        // Pilot has security status below 0
-        match: (hint) => /security status below 0/.test(hint),
-        color: "#facc15",
-      },
-      {
-        // Pilot has no standing
-        match: (_hint) => true,
-        color: "#6b7280",
-      },
-    ];
-
-    const matchedIndex = localTagRules.findIndex((rule) =>
-      rule.match(normalizedHint),
-    );
-    const index = matchedIndex >= 0 ? matchedIndex : localTagRules.length - 1;
-
-    return {
-      precedence: index,
-      color: localTagRules[index]!.color,
-    };
-  }
-
   private normalizeLocalReportPayload(rawBody: string): LocalReport | null {
     try {
       const payload = JSON.parse(rawBody) as {
         System?: unknown;
         ScoutName?: unknown;
+        Status?: unknown;
         Time?: unknown;
         Locals?: unknown;
+        OnGrid?: unknown;
       };
 
       if (!Array.isArray(payload.Locals)) {
@@ -1705,6 +1741,7 @@ export class Server {
 
       const system = String(payload.System ?? "").trim();
       const scoutName = String(payload.ScoutName ?? "").trim();
+      const status = String(payload.Status ?? "Unknown").trim();
       const numericTime = Number(payload.Time);
 
       if (!system || !scoutName || !Number.isFinite(numericTime)) {
@@ -1748,11 +1785,72 @@ export class Server {
           (local): local is LocalReport["Locals"][number] => local !== null,
         );
 
+      const onGridRaw = Array.isArray(payload.OnGrid) ? payload.OnGrid : [];
+      const onGrid = onGridRaw
+        .map((gridPilot): GridPilot | null => {
+          if (
+            !gridPilot ||
+            typeof gridPilot !== "object" ||
+            Array.isArray(gridPilot)
+          ) {
+            return null;
+          }
+
+          const gridPilotObject = gridPilot as {
+            PilotName?: unknown;
+            ShipType?: unknown;
+            ShipTypeId?: unknown;
+            StandingHint?: unknown;
+            StandingIconId?: unknown;
+            Action?: unknown;
+            Distance?: unknown;
+            DistanceMeters?: unknown;
+            Corporation?: unknown;
+            Alliance?: unknown;
+          };
+
+          const pilotName = String(gridPilotObject.PilotName ?? "").trim();
+          const shipType = String(gridPilotObject.ShipType ?? "").trim();
+          const action = String(gridPilotObject.Action ?? "").trim();
+          if (!pilotName || !shipType || !action) {
+            return null;
+          }
+
+          const standingIconId = Number(gridPilotObject.StandingIconId ?? NaN);
+          const shipTypeId = Number(gridPilotObject.ShipTypeId ?? NaN);
+          const distanceMeters = Number(gridPilotObject.DistanceMeters ?? NaN);
+
+          return {
+            PilotName: pilotName,
+            ShipType: shipType,
+            ShipTypeId: Number.isFinite(shipTypeId)
+              ? Math.trunc(shipTypeId)
+              : undefined,
+            StandingHint: String(gridPilotObject.StandingHint ?? ""),
+            StandingIconId: Number.isFinite(standingIconId)
+              ? Math.trunc(standingIconId)
+              : undefined,
+            Action: action,
+            Distance:
+              String(gridPilotObject.Distance ?? "").trim() || undefined,
+            DistanceMeters: Number.isFinite(distanceMeters)
+              ? distanceMeters
+              : undefined,
+            Corporation:
+              String(gridPilotObject.Corporation ?? "").trim() || undefined,
+            Alliance:
+              String(gridPilotObject.Alliance ?? "").trim() || undefined,
+          };
+        })
+        .filter((gridPilot): gridPilot is GridPilot => gridPilot !== null);
+
       return {
         System: system,
         ScoutName: scoutName,
+        Status: status || "Unknown",
         Time: normalizedTime,
         Locals: locals,
+        OnGrid: onGrid,
       };
     } catch {
       return null;
